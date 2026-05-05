@@ -21,15 +21,7 @@ export const packageRouter = router({
   getPackages: publicProcedure
     .input(
       z.object({
-        filter: z.enum([
-          "today",
-          "last30days",
-          "last90days",
-          "1year",
-          "2years",
-          "3years",
-          "all",
-        ]),
+        filter: z.string(),
       })
     )
     .query(async ({ input }) => {

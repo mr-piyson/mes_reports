@@ -259,7 +259,7 @@ export default function ReportPage() {
             columnDefs={reportColumns}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
-            animateRows={true}
+            animateRows={false}
             suppressMenuHide={true}
             theme={theme}
             loading={isLoading}

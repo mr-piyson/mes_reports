@@ -171,7 +171,7 @@ export default function ReportPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[200px] justify-between">
+              <Button variant="outline" className="w-50 justify-between">
                 {from ? from.toLocaleDateString() : "From Date"}
                 <ChevronDownIcon className="size-4 opacity-50" />
               </Button>
@@ -188,7 +188,7 @@ export default function ReportPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[200px] justify-between">
+              <Button variant="outline" className="w-50 justify-between">
                 {to ? to.toLocaleDateString() : "To Date"}
                 <ChevronDownIcon className="size-4 opacity-50" />
               </Button>
@@ -255,8 +255,7 @@ export default function ReportPage() {
             onGridReady={onGridReady}
             theme={theme}
             loading={isFetching}
-            rowSelection="multiple"
-            animateRows={false} // Performance boost for large sets
+            animateRows={false}
           />
         </div>
       </div>

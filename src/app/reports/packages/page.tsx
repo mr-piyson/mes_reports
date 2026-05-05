@@ -12,7 +12,6 @@ import { useAtom } from "jotai"
 import { SearchIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
-import { ApiReportData } from "@/app/api/reports/packages/route"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
@@ -23,42 +22,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTableTheme } from "@/hooks/use-tableTheme"
+import { trpc } from "@/lib/trpc/client"
 
-import { SearchDialog } from "./SearchPanels"
-import { type ReportData, filterStore, filteredData, initData } from "./atoms"
-
-const searchOptions: { value: keyof ReportData; label: string }[] = [
-  { value: "code", label: "Panel Code" },
-  { value: "project_name", label: "Project Name" },
-]
+import { BoxCellRenderer } from "../CellsRender"
 
 interface ImportDialogProps {
   children?: React.ReactNode
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
-
-const BoxCellRenderer = ({ data }: { data: ReportData }) => (
-  <div className="flex justify-between items-center">
-    <span className="text-md font-semibold">{data.code}</span>
-    {data.code && (
-      <Button
-        variant="outline"
-        size="icon"
-        className="p-0"
-        onClick={() =>
-          window.open(
-            `http://intranet.bfginternational.com:88/packages/show?id=${data.id}`,
-            "_blank"
-          )
-        }
-        title="Inspect Box"
-      >
-        <i className="icon-[solar--box-outline] size-6" />
-      </Button>
-    )}
-  </div>
-)
 
 const DateCellRenderer = ({ value }: { value: string }) => {
   if (!value) return null
@@ -77,10 +49,10 @@ const DateCellRenderer = ({ value }: { value: string }) => {
 
 export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState<ReportData[]>([])
-  const [filter, setFilter] = useAtom(filterStore)
-  const [, setInitPanels] = useAtom(initData)
-  const [panels, setPanels] = useAtom(filteredData)
+  const [selectedRows, setSelectedRows] = useState([])
+  const [filter, setFilter] = useState("")
+  const [, setInitPanels] = useState()
+  const [panels, setPanels] = useState()
   const theme = useTableTheme()
 
   // React Query for data fetching
@@ -90,40 +62,12 @@ export default function ReportPage() {
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["panels", filter],
-    queryFn: async () => {
-      const data = await fetchPanels()
-      setInitPanels(data)
-      setPanels(data)
-      return data
-    },
-    refetchOnWindowFocus: false,
-    gcTime: Infinity,
-    staleTime: Infinity,
+  } = trpc.packages.getPackages.useQuery({
+    filter: filter,
   })
 
-  const fetchPanels = useCallback(async (): Promise<ReportData[]> => {
-    const response = await axios.get(`/api/reports/packages?filter=${filter}`)
-
-    return response.data.map(
-      (panel: ApiReportData): ReportData => ({
-        id: panel.id,
-        code: panel.code.toLocaleUpperCase(),
-        project_name: panel.project_name,
-        length_cm: panel.length_cm,
-        width_cm: panel.width_cm,
-        height_cm: panel.height_cm,
-        weight_kg: panel.weight_kg,
-        created_at: new Date(panel.created_at),
-        container: panel.container,
-        shipped_at: panel.shipped_at,
-      })
-    )
-  }, [filter])
-
   // Memoized column definitions
-  const columnDefs: ColDef<ReportData>[] = useMemo(
+  const columnDefs = useMemo(
     () => [
       {
         headerName: "Box Code",
@@ -225,7 +169,7 @@ export default function ReportPage() {
 
   const onRowSelectionChanged = useCallback(() => {
     if (gridApi) {
-      setSelectedRows(gridApi.getSelectedRows())
+      setSelectedRows(gridApi.getSelectedRows() as [])
     }
   }, [gridApi])
 
@@ -272,12 +216,6 @@ export default function ReportPage() {
       <CardContent className="w-full flex flex-row items-center justify-between p-3 space-x-3">
         {/* Left Controls */}
         <div className="flex flex-1 flex-row gap-4">
-          <SearchDialog>
-            <Button disabled={isLoading || !gridApi} variant="outline">
-              <SearchIcon />
-              <span className="max-sm:hidden">Search</span>
-            </Button>
-          </SearchDialog>
           <Button
             variant="outline"
             onClick={exportRows}

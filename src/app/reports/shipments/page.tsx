@@ -22,20 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTableTheme } from "@/hooks/use-tableTheme"
+import { trpc } from "@/lib/trpc/client"
 
 import {
   BoxCellRenderer,
   DateCellRenderer,
   PanelCellRender,
 } from "../CellsRender"
-import {
-  type ApiReportData,
-  type ReportData,
-  filteredData,
-  initData,
-  monthStore,
-  yearStore,
-} from "./atoms"
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
@@ -43,11 +36,11 @@ ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
 export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState<ReportData[]>([])
-  const [year, setYear] = useAtom(yearStore)
-  const [month, setMonth] = useAtom(monthStore)
-  const [, setInitPanels] = useAtom(initData)
-  const [panels, setPanels] = useAtom(filteredData)
+  const [selectedRows, setSelectedRows] = useState<[]>([])
+  const [year, setYear] = useState<number>(new Date().getFullYear())
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1)
+  const [, setInitPanels] = useState()
+  const [panels, setPanels] = useState()
   const theme = useTableTheme()
 
   // React Query for data fetching
@@ -57,43 +50,13 @@ export default function ReportPage() {
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["shipment", year, month],
-    queryFn: async () => {
-      const data = await fetchPanels()
-      setInitPanels(data)
-      setPanels(data)
-      return data
-    },
-    refetchOnWindowFocus: false,
-    gcTime: Infinity,
-    staleTime: Infinity,
-    enabled: false,
+  } = trpc.shipping.getMonthlyShipments.useQuery({
+    month: month,
+    year: year,
   })
 
-  const fetchPanels = useCallback(async (): Promise<ReportData[]> => {
-    const response = await axios.get(
-      `/api/reports/shipments?year=${year}&month=${month}`
-    )
-    const data = response.data.map(
-      (panel: ApiReportData): ReportData => ({
-        package: panel.package.toUpperCase(),
-        project: panel.project,
-        part_id: panel.part_id.toUpperCase(),
-        description: panel.description,
-        container_id: panel.container_id,
-        date: new Date(panel.date),
-        shipped_by: panel.shipped_by,
-        epicor_asm_part_no: panel.epicor_asm_part_no,
-        epicor_part_no: panel.epicor_part_no,
-        job_id: panel.job_id,
-      })
-    )
-    return data
-  }, [year, month])
-
   // Memoized column definitions
-  const columnDefs: ColDef<ReportData>[] = useMemo(
+  const columnDefs: ColDef[] = useMemo(
     () => [
       {
         headerName: "Panel ID",
@@ -183,17 +146,9 @@ export default function ReportPage() {
 
   const onRowSelectionChanged = useCallback(() => {
     if (gridApi) {
-      setSelectedRows(gridApi.getSelectedRows())
+      setSelectedRows(gridApi.getSelectedRows() as [])
     }
   }, [gridApi])
-
-  const refreshData = useCallback(() => {
-    if (gridApi) {
-      gridApi.setFilterModel(null)
-      gridApi.resetColumnState()
-    }
-    refetch()
-  }, [gridApi, year, month])
 
   const exportRows = useCallback(() => {
     if (gridApi) {
@@ -257,7 +212,10 @@ export default function ReportPage() {
 
         {/* Right Controls */}
         <div className="flex flex-1 flex-row justify-end gap-2">
-          <Select value={year} onValueChange={setYear}>
+          <Select
+            value={String(year)}
+            onValueChange={(value) => setYear(Number(value))}
+          >
             <SelectTrigger className=" border-border">
               <SelectValue placeholder="Year" />
             </SelectTrigger>
@@ -272,7 +230,10 @@ export default function ReportPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={month} onValueChange={setMonth}>
+          <Select
+            value={String(month)}
+            onValueChange={(value) => setMonth(Number(value))}
+          >
             <SelectTrigger className="border-border">
               <SelectValue placeholder="Month" />
             </SelectTrigger>

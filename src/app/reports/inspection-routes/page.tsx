@@ -25,7 +25,6 @@ import {
 import { useTableTheme } from "@/hooks/use-tableTheme"
 
 import { RouteCellRenderer } from "../CellsRender"
-import { SearchDialog } from "./SearchPanels"
 // Types
 import { type ReportData, filterStore, filteredData, initData } from "./atoms"
 
@@ -221,12 +220,10 @@ export default function ReportPage() {
       <CardContent className="w-full flex flex-row items-center justify-between p-3 space-x-3">
         {/* Left Controls */}
         <div className="flex flex-1 flex-row gap-4">
-          <SearchDialog>
-            <Button disabled={isLoading || !gridApi} variant="outline">
-              <SearchIcon />
-              <span className="max-sm:hidden">Search</span>
-            </Button>
-          </SearchDialog>
+          <Button disabled={isLoading || !gridApi} variant="outline">
+            <SearchIcon />
+            <span className="max-sm:hidden">Search</span>
+          </Button>
           <Button
             variant="outline"
             onClick={exportRows}
