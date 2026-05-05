@@ -26,6 +26,65 @@ import { trpc } from "@/lib/trpc/client"
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
+const gateOrder = [1, 2, 10, 3, 11, 12, 15, 4, 5, 6]
+
+const workstation: Record<number, string | undefined> = {
+  1: "Mold",
+  2: "Gelcoating",
+  10: "Demolding",
+  3: "Trimming",
+  11: "Drilling",
+  12: "Bonding",
+  15: "Paint Prep",
+  4: "Finishing",
+  5: "Painting",
+  6: "Final",
+  16: "Wrapping",
+  17: "Packing",
+  18: "Mixing",
+  19: "Casting",
+  20: "Pullout Test",
+  21: "Curing",
+  22: "After Trimming",
+}
+
+export const useReportColumns = () => {
+  return useMemo<ColDef[]>(() => {
+    // 1. Initial Identity Column
+    const columnDefs: ColDef[] = [
+      {
+        field: "panel_serial",
+        headerName: "Panel Serial",
+        pinned: "left",
+        width: 220,
+        checkboxSelection: true,
+        headerCheckboxSelection: true,
+        cellRenderer: PanelCellRender, // Use your custom button renderer
+      },
+    ]
+
+    // 2. Generate Gate Columns based on the gateOrder array
+    const gateColumns: ColDef[] = gateOrder
+      .filter((id) => workstation[id]) // Only create columns that exist in the mapping
+      .map((id) => ({
+        field: id.toString(), // Map to the numeric string key in your API data
+        headerName: workstation[id],
+        minWidth: 160,
+        valueFormatter: (params) => {
+          if (!params.value) return ""
+          const date = new Date(params.value)
+          if (isNaN(date.getTime())) return params.value
+
+          // Custom format: 2026-05-05 11:44:02
+          return date.toISOString().replace("T", " ").split(".")[0]
+        },
+        // Optional: Style columns based on stage groups
+        headerClass: id > 10 ? "bg-secondary/10" : "",
+      }))
+
+    return [...columnDefs, ...gateColumns]
+  }, [])
+}
 const DateCellRenderer = ({ value }: { value: string | null | undefined }) => {
   if (!value) return ""
   const date = new Date(value)
@@ -67,6 +126,7 @@ export default function ReportPage() {
   const theme = useTableTheme()
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
   const [selectedRows, setSelectedRows] = useState<any[]>([])
+  const reportColumns = useReportColumns()
 
   // Replaced Jotai with local useState
   const [filter, setFilter] = useState<string>("today")
@@ -83,40 +143,6 @@ export default function ReportPage() {
     filter: filter,
   })
   console.log(tableData)
-
-  // Memoized column definitions
-  const columnDefs: ColDef[] = useMemo(
-    () => [
-      {
-        field: "panel_serial",
-        headerName: "Panel Serial",
-        editable: true,
-        cellRenderer: PanelCellRender, // Utilized the custom renderer here
-      },
-      { field: "Mold", label: "Mold", cellRenderer: DateCellRenderer },
-      {
-        field: "Gelcoating",
-        label: "Gelcoating",
-        cellRenderer: DateCellRenderer,
-      },
-      {
-        field: "Demolding",
-        label: "Demolding",
-        cellRenderer: DateCellRenderer,
-      },
-      { field: "Trimming", label: "Trimming", cellRenderer: DateCellRenderer },
-      { field: "Drilling", label: "Drilling", cellRenderer: DateCellRenderer },
-      { field: "Bonding", label: "Bonding", cellRenderer: DateCellRenderer },
-      {
-        field: "Paint Preparation",
-        label: "Paint Preparation",
-        cellRenderer: DateCellRenderer,
-      },
-      { field: "Painting", label: "Painting", cellRenderer: DateCellRenderer },
-      { field: "Final", label: "Final", cellRenderer: DateCellRenderer },
-    ],
-    []
-  )
 
   // Memoized default column properties
   const defaultColDef = useMemo(
@@ -232,7 +258,7 @@ export default function ReportPage() {
         <div className="ag-theme-alpine h-full w-full">
           <AgGridReact
             rowData={tableData}
-            columnDefs={columnDefs}
+            columnDefs={reportColumns}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
             animateRows={true}
@@ -240,7 +266,6 @@ export default function ReportPage() {
             theme={theme}
             loading={isLoading}
             onSelectionChanged={onRowSelectionChanged}
-            rowSelection="multiple"
           />
         </div>
       </CardContent>
