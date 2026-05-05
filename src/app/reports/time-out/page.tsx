@@ -57,8 +57,6 @@ export const useReportColumns = () => {
         headerName: "Panel Serial",
         pinned: "left",
         width: 220,
-        checkboxSelection: true,
-        headerCheckboxSelection: true,
         cellRenderer: PanelCellRender, // Use your custom button renderer
       },
     ]
