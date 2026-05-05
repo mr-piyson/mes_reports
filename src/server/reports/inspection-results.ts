@@ -55,12 +55,12 @@ const gateMap: Record<number, string> = {
 
 // --- Router Definition ---
 
-export const inspectionRouter = router({
+export const inspectionsRouter = router({
   getResults: publicProcedure
     .input(
       z.object({
-        from: z.string().optional().nullable(),
-        to: z.string().optional().nullable(),
+        from: z.date().optional().nullable(),
+        to: z.date().optional().nullable(),
         gates: z.array(z.number()).optional().default([]),
       })
     )

@@ -1,19 +1,19 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
-import type { ColDef, GridApi, GridReadyEvent } from "ag-grid-community"
+
 import {
   AllCommunityModule,
+  type ColDef,
   CsvExportModule,
+  type GridApi,
+  type GridReadyEvent,
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import { useAtom } from "jotai"
-import { ChevronDownIcon, Search } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { ChevronDownIcon, FileSpreadsheet, Search } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
   Popover,
   PopoverContent,
@@ -21,23 +21,27 @@ import {
 } from "@/components/ui/popover"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTableTheme } from "@/hooks/use-tableTheme"
+import { trpc } from "@/lib/trpc/client"
 
 import {
   DateCellRenderer,
   PanelCellRender,
   StatusCellRenderer,
 } from "../CellsRender"
-import {
-  InspectionResult,
-  filteredData,
-  fromStore,
-  initData,
-  toStore,
-} from "./atoms"
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
-const gateOptions = [
+interface InspectionResult {
+  panel_serial: string
+  epicor_asm_part_no: string
+  gate: string
+  project: string
+  datetime: string
+  factory: string
+  inspection_result: boolean
+}
+
+const GATE_OPTIONS = [
   { value: "0", label: "All" },
   { value: "1", label: "Mold" },
   { value: "2", label: "Gelcoating" },
@@ -49,122 +53,79 @@ const gateOptions = [
   { value: "6", label: "Final" },
 ]
 
-// Helper function to format date for API (YYYY-MM-DD)
-function formatDateForAPI(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
-
 export default function ReportPage() {
-  const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState<InspectionResult[]>([])
-  const [from, setFrom] = useAtom(fromStore)
-  const [to, setTo] = useAtom(toStore)
-  const [gate, setGate] = useState<string>("0")
-  const [, setInitPanels] = useAtom(initData)
-  const [inspections, setPanels] = useAtom(filteredData)
   const theme = useTableTheme()
 
-  const fetchPanels = useCallback(async (): Promise<InspectionResult[]> => {
-    const fromParam = from ? formatDateForAPI(from) : ""
-    const toParam = to ? formatDateForAPI(to) : ""
+  // Grid State
+  const [gridApi, setGridApi] = useState<GridApi | null>(null)
+  const [gate, setGate] = useState<string>("0")
 
-    const response = await fetch(
-      `/api/reports/inspection-results?from=${fromParam}&to=${toParam}&gate=${gate}`
-    )
-    return await response.json()
-  }, [from, to, gate])
+  // Jotai Global State
+  const [from, setFrom] = useState()
+  const [to, setTo] = useState()
+  const [inspections, setInspections] = useState()
+  const [, setInitPanels] = useState()
 
-  function defectCount(data: InspectionResult[]) {
-    return data.filter((r) => !r.inspection_result).length
-  }
-
-  const defectPercentage = inspections.length
-    ? (defectCount(inspections) / inspections.length) * 100
-    : 0
-
-  // React Query for data fetching
+  // tRPC Query
   const {
-    data: tableData = [],
-    isFetching: isLoading,
+    data: tableData,
+    isFetching,
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["shipment", from, to, gate],
-    queryFn: async () => {
-      const data = await fetchPanels()
-      setInitPanels(data)
-      setPanels(data)
-      return data
+  } = trpc.inspections.getResults.useQuery(
+    {
+      from: from, // Fallback to avoid null in query if required
+      to: to,
+      gates: [Number(gate)],
     },
-    refetchOnWindowFocus: false,
-    gcTime: Infinity,
-    staleTime: Infinity,
-    enabled: false,
-  })
+    {
+      enabled: !!from && !!to, // Only fetch if dates are selected
+    }
+  )
 
-  // Memoized column definitions
-  const columnDefs: ColDef<InspectionResult>[] = useMemo(
+  // Sync tRPC data to Jotai Store
+  useEffect(() => {
+    if (tableData) {
+      setInspections(tableData)
+      setInitPanels(tableData)
+    }
+  }, [tableData, setInspections, setInitPanels])
+
+  // Calculations
+  const metrics = useMemo(() => {
+    const total = inspections?.length || 0
+    const defects = inspections?.filter((r) => !r.inspection_result).length || 0
+    const percentage = total > 0 ? (defects / total) * 100 : 0
+    return { total, percentage }
+  }, [inspections])
+
+  // AG Grid Column Definitions
+  const columnDefs = useMemo<ColDef<InspectionResult>[]>(
     () => [
       {
         headerName: "Panel ID",
         field: "panel_serial",
-        editable: true,
-        sortable: true,
-        filter: true,
-        flex: 1,
         cellRenderer: PanelCellRender,
+        flex: 1.5,
       },
+      { field: "epicor_asm_part_no", headerName: "ASM Part No" },
+      { field: "gate" },
+      { field: "project" },
       {
-        headerName: "ASM Part No",
-        field: "epicor_asm_part_no",
-        editable: true,
-        sortable: true,
-        filter: true,
-      },
-      {
-        headerName: "Gate",
-        field: "gate",
-        editable: true,
-        sortable: true,
-        filter: true,
-      },
-      {
-        headerName: "Project",
-        field: "project",
-        editable: true,
-        sortable: true,
-        filter: true,
-      },
-      {
-        headerName: "Date & Time",
         field: "datetime",
-        editable: true,
-        sortable: true,
-        filter: true,
+        headerName: "Date & Time",
         cellRenderer: DateCellRenderer,
       },
+      { field: "factory" },
       {
-        headerName: "Factory",
-        field: "factory",
-        editable: true,
-        sortable: true,
-        filter: true,
-      },
-      {
-        headerName: "Inspection Result",
+        headerName: "Result",
         field: "inspection_result",
-        editable: true,
-        sortable: true,
-        filter: true,
-        cellRenderer: (value: any) => (
+        cellRenderer: (params: any) => (
           <StatusCellRenderer
-            value={value.value}
-            whenFalse={"NOK"}
-            whenTrue={"OK"}
+            value={params.value}
+            whenFalse="NOK"
+            whenTrue="OK"
           />
         ),
       },
@@ -172,201 +133,156 @@ export default function ReportPage() {
     []
   )
 
-  // Memoized default column properties
   const defaultColDef = useMemo(
     () => ({
       resizable: true,
       sortable: true,
       filter: true,
       floatingFilter: true,
+      flex: 1,
     }),
     []
   )
 
-  // Callbacks
-  const onGridReady = useCallback((params: GridReadyEvent) => {
-    setGridApi(params.api)
-  }, [])
-
-  const onRowSelectionChanged = useCallback(() => {
-    if (gridApi) {
-      setSelectedRows(gridApi.getSelectedRows())
-    }
-  }, [gridApi])
-
-  const refreshData = useCallback(() => {
-    if (gridApi) {
-      gridApi.setFilterModel(null)
-      gridApi.resetColumnState()
-    }
-    refetch()
-  }, [gridApi, refetch])
+  // Actions
+  const onGridReady = (params: GridReadyEvent) => setGridApi(params.api)
 
   const exportRows = useCallback(() => {
-    if (gridApi) {
-      gridApi.exportDataAsCsv({
-        onlySelected: false,
-        onlySelectedAllPages: false,
-        allColumns: false,
-        fileName: `filtered-report-${
-          new Date().toISOString().split("T")[0]
-        }.csv`,
-      })
-    }
+    gridApi?.exportDataAsCsv({
+      fileName: `inspection-report-${new Date().toISOString().split("T")[0]}.csv`,
+    })
   }, [gridApi])
 
-  // Handle search button click
-  const handleSearch = useCallback(() => {
-    refetch()
-  }, [refetch])
-
-  // Error state
   if (isError) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-destructive">
-            <h2 className="text-lg font-semibold mb-2">Error Loading Data</h2>
-            <p className="mb-4">
-              {error instanceof Error ? error.message : "An error occurred"}
-            </p>
-            <Button onClick={() => refetch()}>Try Again</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="p-10 text-center">
+        <p className="text-destructive mb-4">
+          {error?.message || "Failed to load data"}
+        </p>
+        <Button onClick={() => refetch()}>Retry</Button>
+      </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Full Width Header */}
-      <div className="w-full border-0 rounded-none bg-card">
-        <div className=" space-y-4 p-2 ">
-          {/* Date Range Picker and Search */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Calender From */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  id="date"
-                  className="w-48 justify-between font-normal"
-                >
-                  {from
-                    ? `From: ${from.toLocaleDateString()}`
-                    : "Select start date"}
-                  <ChevronDownIcon />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-auto overflow-hidden p-0"
-                align="start"
-              >
-                <Calendar
-                  mode="single"
-                  selected={from}
-                  captionLayout="dropdown"
-                  disabled={(day) => day > new Date()}
-                  onSelect={(date) => {
-                    setFrom(date)
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            {/* Calender To */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  id="date"
-                  className="w-48 justify-between font-normal"
-                >
-                  {to ? `To: ${to.toLocaleDateString()}` : "Select end date"}
-                  <ChevronDownIcon />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-auto overflow-hidden p-0"
-                align="start"
-              >
-                <Calendar
-                  mode="single"
-                  selected={to}
-                  disabled={(day) =>
-                    day > new Date() || (from ? day < from : false)
-                  }
-                  captionLayout="dropdown"
-                  onSelect={(date) => {
-                    setTo(date)
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Header / Toolbar */}
+      <div className="p-4 border-b space-y-4 bg-card">
+        <div className="flex flex-wrap items-center gap-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[200px] justify-between">
+                {from ? from.toLocaleDateString() : "From Date"}
+                <ChevronDownIcon className="size-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={from}
+                onSelect={setFrom}
+                disabled={(d) => d > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
 
-            <Button onClick={handleSearch} disabled={isLoading || !from || !to}>
-              <Search className="mr-2 h-4 w-4" />
-              Search
-            </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[200px] justify-between">
+                {to ? to.toLocaleDateString() : "To Date"}
+                <ChevronDownIcon className="size-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={to}
+                onSelect={setTo}
+                disabled={(d) => d > new Date() || (from ? d < from : false)}
+              />
+            </PopoverContent>
+          </Popover>
 
-            <Button
-              variant="outline"
-              onClick={exportRows}
-              disabled={isLoading || !gridApi}
-            >
-              <i className="icon-[vscode-icons--file-type-excel] size-4 mr-2" />
-              Export
-            </Button>
-            <div className="inline-flex flex-wrap flex-1 w-full gap-4  justify-end">
-              <div className=" p-4 bg-card shadow-md gap-3 border rounded-2xl flex items-center">
-                <p className="text-sm text-muted-foreground">Defect Rate :</p>
-                <p className=" text-3xl font-bold text-destructive">
-                  {defectPercentage.toFixed(2)}%
-                </p>
-              </div>
-              <div className=" p-4 bg-card shadow-md gap-3 border rounded-2xl flex items-center">
-                <p className="text-sm text-muted-foreground">Total Ins :</p>
-                <p className=" text-3xl font-bold ">{inspections.length}</p>
-              </div>
-            </div>
-          </div>
+          <Button
+            onClick={() => refetch()}
+            disabled={isFetching || !from || !to}
+          >
+            <Search className="mr-2 size-4" />
+            {isFetching ? "Searching..." : "Search"}
+          </Button>
 
-          {/* Gates Tab Switcher */}
-          <div className="w-full overflow-x-auto">
-            <Tabs value={gate} onValueChange={setGate} className="w-full">
-              <TabsList className="inline-flex w-auto min-w-full">
-                {gateOptions.map((option) => (
-                  <TabsTrigger
-                    key={option.value}
-                    value={option.value}
-                    className="whitespace-nowrap"
-                  >
-                    {option.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
-      </div>
+          <Button
+            variant="outline"
+            onClick={exportRows}
+            disabled={!inspections}
+          >
+            <FileSpreadsheet className="mr-2 size-4" />
+            Export CSV
+          </Button>
 
-      {/* Data Grid */}
-      <Card className="flex-1 p-0 gap-0">
-        <CardContent className="p-0 h-full">
-          <div className="ag-theme-alpine h-full w-full">
-            <AgGridReact
-              rowData={inspections}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              onGridReady={onGridReady}
-              animateRows={true}
-              suppressMenuHide={true}
-              theme={theme}
-              loading={isLoading}
-              onSelectionChanged={onRowSelectionChanged}
+          {/* Metrics Section */}
+          <div className="ml-auto flex gap-4">
+            <MetricCard
+              label="Defect Rate"
+              value={`${metrics.percentage.toFixed(2)}%`}
+              destructive={metrics.percentage > 5}
+            />
+            <MetricCard
+              label="Total Inspected"
+              value={metrics.total.toString()}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Tabs value={gate} onValueChange={setGate} className="w-full">
+          <TabsList className="w-full bg-muted/50">
+            {GATE_OPTIONS.map((opt) => (
+              <TabsTrigger key={opt.value} value={opt.value}>
+                {opt.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Grid Area */}
+      <div className="flex-1 overflow-hidden relative">
+        <div className="absolute inset-0">
+          <AgGridReact
+            rowData={inspections}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            onGridReady={onGridReady}
+            theme={theme}
+            loading={isFetching}
+            rowSelection="multiple"
+            animateRows={false} // Performance boost for large sets
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  destructive,
+}: {
+  label: string
+  value: string
+  destructive?: boolean
+}) {
+  return (
+    <div className="px-4 py-2 bg-background border rounded-xl shadow-sm flex flex-col justify-center">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+        {label}
+      </span>
+      <span
+        className={`text-xl font-bold ${destructive ? "text-destructive" : "text-foreground"}`}
+      >
+        {value}
+      </span>
     </div>
   )
 }
