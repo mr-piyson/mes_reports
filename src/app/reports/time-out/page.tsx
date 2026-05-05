@@ -1,4 +1,5 @@
 "use client"
+
 import { useQuery } from "@tanstack/react-query"
 import type { ColDef, GridApi, GridReadyEvent } from "ag-grid-community"
 import {
@@ -7,11 +8,10 @@ import {
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import axios from "axios"
-import { useAtom } from "jotai"
 import { SearchIcon } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
+// Assuming these exist in your project
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
@@ -22,23 +22,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTableTheme } from "@/hooks/use-tableTheme"
-
-import { SearchDialog } from "./SearchPanels"
-// Types
-import {
-  ApiReportData,
-  type ReportData,
-  filterStore,
-  filteredData,
-  getPivotData,
-  initData,
-} from "./atoms"
+import { trpc } from "@/lib/trpc/client"
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
-const DateCellRenderer = ({ value }: { value: string }) => {
+const DateCellRenderer = ({ value }: { value: string | null | undefined }) => {
   if (!value) return ""
   const date = new Date(value)
+
+  // Guard against invalid dates
+  if (isNaN(date.getTime())) return value
+
   const day = String(date.getDate()).padStart(2, "0")
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const year = date.getFullYear()
@@ -50,59 +44,45 @@ const DateCellRenderer = ({ value }: { value: string }) => {
 }
 
 const PanelCellRender = ({ value }: { value: string }) => {
+  if (!value) return null
   const trackerUrl = `http://intranet.bfginternational.com:88/utilities/panel_tracker?part_id=${value}`
 
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-md font-semibold">{value}</span>
+    <div className="flex justify-between items-center w-full h-full pr-2">
+      <span className="text-md font-semibold uppercase">{value}</span>
       <Button
         variant="outline"
         size="icon"
-        className="p-0"
+        className="p-0 h-6 w-6"
         onClick={() => window.open(trackerUrl, "_blank")}
         title="Inspect Panel"
       >
-        <i className="icon-[mingcute--inspect-line] size-5" />
+        <i className="icon-[mingcute--inspect-line] size-4" />
       </Button>
     </div>
   )
 }
 
-// API function
-
 export default function ReportPage() {
-  const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState<ReportData[]>([])
-  const [filter, setFilter] = useAtom(filterStore)
-  const [, setInitPanels] = useAtom(initData)
-  const [panels, setPanels] = useAtom(filteredData)
   const theme = useTableTheme()
+  const [gridApi, setGridApi] = useState<GridApi | null>(null)
+  const [selectedRows, setSelectedRows] = useState<any[]>([])
 
-  // React Query for data fetching
+  // Replaced Jotai with local useState
+  const [filter, setFilter] = useState<string>("today")
+  const [panels, setPanels] = useState([])
+
+  // React Query for data fetching (Removed side-effects from queryFn)
   const {
     data: tableData = [],
     isFetching: isLoading,
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["panels", filter],
-    queryFn: async () => {
-      const data = await fetchPanels()
-      setInitPanels(data)
-      setPanels(data)
-      return data
-    },
-    refetchOnWindowFocus: false,
-    gcTime: Infinity,
-    staleTime: Infinity,
+  } = trpc.timeOut.getHistory.useQuery({
+    filter: filter,
   })
-
-  const fetchPanels = useCallback(async (): Promise<ReportData[]> => {
-    const res = await axios.get(`/api/reports/time-out?filter=${filter}`)
-    const data = getPivotData(res.data)
-    return data
-  }, [filter])
+  console.log(tableData)
 
   // Memoized column definitions
   const columnDefs: ColDef[] = useMemo(
@@ -111,25 +91,29 @@ export default function ReportPage() {
         field: "panel_serial",
         headerName: "Panel Serial",
         editable: true,
-        valueFormatter: (value) => String(value.value).toUpperCase(),
+        cellRenderer: PanelCellRender, // Utilized the custom renderer here
       },
-      { field: "Mold", valueFormatter: DateCellRenderer },
-      { field: "Gelcoating", valueFormatter: DateCellRenderer },
-      { field: "Demolding", valueFormatter: DateCellRenderer },
-      { field: "Trimming", valueFormatter: DateCellRenderer },
-      { field: "Drilling", valueFormatter: DateCellRenderer },
-      { field: "Bonding", valueFormatter: DateCellRenderer },
-      { field: "Paint Prep", valueFormatter: DateCellRenderer },
-      { field: "Painting", valueFormatter: DateCellRenderer },
-      { field: "Final", valueFormatter: DateCellRenderer },
-      // { field: "Finishing" },
-      // { field: "Wrapping" },
-      // { field: "Packing" },
-      // { field: "Mixing" },
-      // { field: "Casting" },
-      // { field: "Pullout Test" },
-      // { field: "Curing" },
-      // { field: "After Trimming" },
+      { field: "Mold", label: "Mold", cellRenderer: DateCellRenderer },
+      {
+        field: "Gelcoating",
+        label: "Gelcoating",
+        cellRenderer: DateCellRenderer,
+      },
+      {
+        field: "Demolding",
+        label: "Demolding",
+        cellRenderer: DateCellRenderer,
+      },
+      { field: "Trimming", label: "Trimming", cellRenderer: DateCellRenderer },
+      { field: "Drilling", label: "Drilling", cellRenderer: DateCellRenderer },
+      { field: "Bonding", label: "Bonding", cellRenderer: DateCellRenderer },
+      {
+        field: "Paint Preparation",
+        label: "Paint Preparation",
+        cellRenderer: DateCellRenderer,
+      },
+      { field: "Painting", label: "Painting", cellRenderer: DateCellRenderer },
+      { field: "Final", label: "Final", cellRenderer: DateCellRenderer },
     ],
     []
   )
@@ -162,7 +146,7 @@ export default function ReportPage() {
       gridApi.resetColumnState()
     }
     refetch()
-  }, [gridApi, filter])
+  }, [gridApi, refetch])
 
   const exportRows = useCallback(() => {
     if (gridApi) {
@@ -170,9 +154,7 @@ export default function ReportPage() {
         onlySelected: false,
         onlySelectedAllPages: false,
         allColumns: false,
-        fileName: `filtered-report-${
-          new Date().toISOString().split("T")[0]
-        }.csv`,
+        fileName: `filtered-report-${new Date().toISOString().split("T")[0]}.csv`,
       })
     }
   }, [gridApi])
@@ -199,20 +181,22 @@ export default function ReportPage() {
       <CardContent className="w-full flex flex-row items-center justify-between p-3 space-x-3">
         {/* Left Controls */}
         <div className="flex flex-1 flex-row gap-4">
-          <SearchDialog>
-            <Button disabled={isLoading || !gridApi} variant="outline">
-              <SearchIcon />
-              <span className="max-sm:hidden">Search</span>
-            </Button>
-          </SearchDialog>
+          {/* Passed local state down to SearchDialog so it can modify the data */}
+
+          <Button disabled={isLoading || !gridApi} variant="outline">
+            <SearchIcon className="size-4 mr-2" />
+            <span className="max-sm:hidden">Search</span>
+          </Button>
+
           <Button
             variant="outline"
             onClick={exportRows}
             disabled={isLoading || !gridApi}
           >
-            <i className="icon-[vscode-icons--file-type-excel] size-4" />
+            <i className="icon-[vscode-icons--file-type-excel] size-4 mr-2" />
             <span className="max-sm:hidden">Export</span>
           </Button>
+
           <Button
             className="flex items-center gap-2"
             variant="outline"
@@ -247,7 +231,7 @@ export default function ReportPage() {
       <CardContent className="p-0 h-full">
         <div className="ag-theme-alpine h-full w-full">
           <AgGridReact
-            rowData={panels}
+            rowData={tableData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
@@ -256,15 +240,16 @@ export default function ReportPage() {
             theme={theme}
             loading={isLoading}
             onSelectionChanged={onRowSelectionChanged}
+            rowSelection="multiple"
           />
         </div>
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="py-3">
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <span>Total Panels: {tableData.length}</span>
+          <span>Total Panels: {panels.length}</span>
           {selectedRows.length > 0 && (
-            <span className="pl-4 ml-2 border-l-2 border-foreground">
+            <span className="pl-4 ml-2 border-l-2 border-border">
               Selected Panels: {selectedRows.length}
             </span>
           )}

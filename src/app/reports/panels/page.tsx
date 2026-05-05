@@ -27,6 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { useTableTheme } from "@/hooks/use-tableTheme"
 import { trpc } from "@/lib/trpc/client"
+import { PanelsReportData } from "@/server/reports/panel"
 
 import {
   BoxCellRenderer,
@@ -39,25 +40,10 @@ import {
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
-// --- Types ---
-export interface ReportData {
-  panelId: string
-  description?: string
-  epicor_asm_part_no?: string
-  project?: string
-  job_id?: string
-  created_at?: string
-  qc_datetime?: string
-  final?: number
-  wrapped?: number
-  package?: string
-  container?: string
-}
-
 // --- Main Component ---
 export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState<ReportData[]>([])
+  const [selectedRows, setSelectedRows] = useState<PanelsReportData[]>([])
   const [filter, setFilter] = useState("today") // Default to today instead of empty string
   const theme = useTableTheme()
 

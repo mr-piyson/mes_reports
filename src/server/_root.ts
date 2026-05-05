@@ -13,12 +13,14 @@ import { jobsRouter } from "./reports/jobs"
 import { packageRouter } from "./reports/packages"
 import { panelsRouter } from "./reports/panel"
 import { shippingRouter } from "./reports/shipments"
+import { timeOutRouter } from "./reports/time-out"
 
 export const appRouter = t.router({
   panels: panelsRouter,
   shipping: shippingRouter,
   jobs: jobsRouter,
   packages: packageRouter,
+  timeOut: timeOutRouter,
 })
 
 export type AppRouter = typeof appRouter
