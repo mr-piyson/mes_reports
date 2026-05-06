@@ -10,7 +10,7 @@ import {
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
 import { ChevronDownIcon, FileSpreadsheet, Search } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -57,16 +57,14 @@ export default function ReportPage() {
   const theme = useTableTheme()
 
   // Grid State
-  const [gridApi, setGridApi] = useState<GridApi | null>(null)
+  const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(null)
   const [gate, setGate] = useState<string>("0")
 
-  // Jotai Global State
-  const [from, setFrom] = useState()
-  const [to, setTo] = useState()
-  const [inspections, setInspections] = useState()
-  const [, setInitPanels] = useState()
+  // Date State with proper types
+  const [from, setFrom] = useState<Date | undefined>()
+  const [to, setTo] = useState<Date | undefined>()
 
-  // tRPC Query
+  // tRPC Query - Mapping input to ensure dates are valid before sending
   const {
     data: tableData,
     isFetching,
@@ -75,30 +73,23 @@ export default function ReportPage() {
     refetch,
   } = trpc.inspections.getResults.useQuery(
     {
-      from: from, // Fallback to avoid null in query if required
+      from: from,
       to: to,
       gates: [Number(gate)],
     },
     {
-      enabled: !!from && !!to, // Only fetch if dates are selected
+      enabled: !!from && !!to,
     }
   )
 
-  // Sync tRPC data to Jotai Store
-  useEffect(() => {
-    if (tableData) {
-      setInspections(tableData)
-      setInitPanels(tableData)
-    }
-  }, [tableData, setInspections, setInitPanels])
-
-  // Calculations
+  // Calculations based on fetched data
   const metrics = useMemo(() => {
-    const total = inspections?.length || 0
-    const defects = inspections?.filter((r) => !r.inspection_result).length || 0
+    const data = tableData || []
+    const total = data.length
+    const defects = data.filter((r) => !r.inspection_result).length
     const percentage = total > 0 ? (defects / total) * 100 : 0
     return { total, percentage }
-  }, [inspections])
+  }, [tableData])
 
   // AG Grid Column Definitions
   const columnDefs = useMemo<ColDef<InspectionResult>[]>(
@@ -133,7 +124,7 @@ export default function ReportPage() {
     []
   )
 
-  const defaultColDef = useMemo(
+  const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
       sortable: true,
@@ -145,7 +136,8 @@ export default function ReportPage() {
   )
 
   // Actions
-  const onGridReady = (params: GridReadyEvent) => setGridApi(params.api)
+  const onGridReady = (params: GridReadyEvent<InspectionResult>) =>
+    setGridApi(params.api)
 
   const exportRows = useCallback(() => {
     gridApi?.exportDataAsCsv({
@@ -166,22 +158,22 @@ export default function ReportPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Header / Toolbar */}
       <div className="p-4 border-b space-y-4 bg-card">
         <div className="flex flex-wrap items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-50 justify-between">
                 {from ? from.toLocaleDateString() : "From Date"}
-                <ChevronDownIcon className="size-4 opacity-50" />
+                <ChevronDownIcon className="ml-2 size-4 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={from}
                 onSelect={setFrom}
                 disabled={(d) => d > new Date()}
+                initialFocus
               />
             </PopoverContent>
           </Popover>
@@ -190,15 +182,16 @@ export default function ReportPage() {
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-50 justify-between">
                 {to ? to.toLocaleDateString() : "To Date"}
-                <ChevronDownIcon className="size-4 opacity-50" />
+                <ChevronDownIcon className="ml-2 size-4 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={to}
                 onSelect={setTo}
                 disabled={(d) => d > new Date() || (from ? d < from : false)}
+                initialFocus
               />
             </PopoverContent>
           </Popover>
@@ -214,13 +207,12 @@ export default function ReportPage() {
           <Button
             variant="outline"
             onClick={exportRows}
-            disabled={!inspections}
+            disabled={!tableData || tableData.length === 0}
           >
             <FileSpreadsheet className="mr-2 size-4" />
             Export CSV
           </Button>
 
-          {/* Metrics Section */}
           <div className="ml-auto flex gap-4">
             <MetricCard
               label="Defect Rate"
@@ -229,7 +221,7 @@ export default function ReportPage() {
             />
             <MetricCard
               label="Total Inspected"
-              value={metrics.total.toString()}
+              value={metrics.total.toLocaleString()}
             />
           </div>
         </div>
@@ -237,7 +229,7 @@ export default function ReportPage() {
         <Tabs value={gate} onValueChange={setGate} className="w-full">
           <TabsList className="w-full bg-muted/50">
             {GATE_OPTIONS.map((opt) => (
-              <TabsTrigger key={opt.value} value={opt.value}>
+              <TabsTrigger key={opt.value} value={opt.value} className="flex-1">
                 {opt.label}
               </TabsTrigger>
             ))}
@@ -245,17 +237,15 @@ export default function ReportPage() {
         </Tabs>
       </div>
 
-      {/* Grid Area */}
       <div className="flex-1 overflow-hidden relative">
         <div className="absolute inset-0">
           <AgGridReact
-            rowData={inspections}
+            rowData={tableData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
             theme={theme}
             loading={isFetching}
-            animateRows={false}
           />
         </div>
       </div>
@@ -273,7 +263,7 @@ function MetricCard({
   destructive?: boolean
 }) {
   return (
-    <div className="px-4 py-2 bg-background border rounded-xl shadow-sm flex flex-col justify-center">
+    <div className="px-4 py-2 bg-background border rounded-xl shadow-sm flex flex-col justify-center min-w-[120px]">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
         {label}
       </span>

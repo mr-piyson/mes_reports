@@ -2,6 +2,8 @@ import mssql from "mssql"
 import mysql from "mysql2/promise"
 import type { Pool } from "mysql2/promise"
 
+import { env } from "./env"
+
 class DatabaseManager {
   private static mesPool: Pool | null = null
   private static issPool: Pool | null = null
@@ -10,7 +12,7 @@ class DatabaseManager {
   static getMesPool(): Pool {
     if (!this.mesPool) {
       this.mesPool = mysql.createPool({
-        uri: process.env.MES_DATABASE,
+        uri: env.MES_DATABASE_URL,
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
@@ -37,11 +39,11 @@ class DatabaseManager {
   static async getERPPool(): Promise<mssql.ConnectionPool> {
     if (!this.erpPool || !this.erpPool.connected) {
       const config: mssql.config = {
-        user: "MES",
-        password: "M3$Ep!2X",
-        database: "ERP10Live",
-        server: "172.18.1.31",
-        port: 1433,
+        user: env.ERP_USERNAME,
+        password: env.ERP_PASSWORD,
+        database: env.ERP_DATABASE,
+        server: env.ERP_SERVER,
+        port: env.ERP_PORT,
         pool: {
           max: 10,
           min: 0,
