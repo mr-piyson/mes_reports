@@ -71,9 +71,6 @@ export const shippingRouter = router({
           RowDataPacket[] & ShippedPackageData[]
         >(sql, [startDate, endDate])
 
-        // Safety check: log count to your terminal
-        console.log(`Query for ${year}-${month} returned ${rows.length} rows`)
-
         return rows as ShippedPackageData[]
       } catch (error) {
         console.error("Database error:", error)

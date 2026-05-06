@@ -1,5 +1,4 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
 import type { ColDef, GridApi, GridReadyEvent } from "ag-grid-community"
 import {
   AllCommunityModule,
@@ -7,9 +6,7 @@ import {
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import axios from "axios"
-import { useAtom } from "jotai"
-import { Search, SearchIcon } from "lucide-react"
+import { SearchIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -26,10 +23,8 @@ import { trpc } from "@/lib/trpc/client"
 import type { ApiJobsData } from "@/server/reports/jobs"
 
 import {
-  BoxCellRenderer,
   DateCellRenderer,
   JobCellRenderer,
-  PanelCellRender,
   StatusCellRenderer,
 } from "../CellsRender"
 
@@ -48,10 +43,7 @@ export default function ReportPage() {
   const [selectedRows, setSelectedRows] = useState<ApiJobsData[]>([])
   const [filter, setFilter] = useState("")
   const theme = useTableTheme()
-  // const [from, setFrom] = useAtom(fromStore);
-  // const [to, setTo] = useAtom(toStore);
 
-  // React Query for data fetching
   const {
     data: tableData = [],
     isFetching: isLoading,
@@ -61,15 +53,6 @@ export default function ReportPage() {
   } = trpc.jobs.getJobs.useQuery({
     filter: filter,
   })
-
-  console.log(tableData)
-
-  const fetchPanels = useCallback(async (): Promise<ApiJobsData[]> => {
-    // const fromParam = from ? formatDateForAPI(from) : "";
-    // const toParam = to ? formatDateForAPI(to) : "";
-    const response = await axios.get(`/api/reports/jobs?filter=${filter}`)
-    return response.data
-  }, [filter])
 
   // Memoized column definitions
   const columnDefs: ColDef<ApiJobsData>[] = useMemo(

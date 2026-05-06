@@ -140,7 +140,6 @@ export default function ReportPage() {
   } = trpc.timeOut.getHistory.useQuery({
     filter: filter,
   })
-  console.log(tableData)
 
   // Memoized default column properties
   const defaultColDef = useMemo(

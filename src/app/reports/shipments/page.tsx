@@ -1,5 +1,4 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
 import type { ColDef, GridApi, GridReadyEvent } from "ag-grid-community"
 import {
   AllCommunityModule,
@@ -7,8 +6,6 @@ import {
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import axios from "axios"
-import { useAtom } from "jotai"
 import { Search } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
