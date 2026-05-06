@@ -7,7 +7,7 @@
     "lint": "next lint",
     "dev": "next dev -p 4000",
     "build": "next build ",
-    "update": "rm -rf .next && git pull && bun install && bun run build && bun start"
+    "update": "git pull && bun install && bun run build && sudo systemctl restart mes-reports"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
