@@ -64,8 +64,8 @@ class DatabaseManager {
 // Export the "getter" functions rather than the initialized objects
 // This ensures connections are only made when needed and handle the async nature of MSSQL
 export const mes = DatabaseManager.getMesPool()
-export const iss = DatabaseManager.getIssPool()
-export const erp = DatabaseManager.getERPPool()
+// export const iss = DatabaseManager.getIssPool()
+// export const erp = DatabaseManager.getERPPool()
 
-const db = { mes, iss, erp }
+const db = { mes }
 export default db

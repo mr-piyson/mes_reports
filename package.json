@@ -59,7 +59,6 @@
     "framer-motion": "^12.23.26",
     "html2canvas-pro": "^1.5.13",
     "input-otp": "^1.4.2",
-    "jotai": "^2.16.0",
     "lucide-react": "^0.544.0",
     "mssql": "^12.2.0",
     "mysql2": "^3.15.3",
@@ -97,7 +96,6 @@
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.7.4",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "prisma": "^7.1.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   }
