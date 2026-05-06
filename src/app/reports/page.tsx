@@ -61,7 +61,7 @@ export default function ModernReportsDashboard() {
       title: "Shipments",
       description: "Logistics & transit status",
       icon: Truck,
-      href: "/",
+      href: "/reports/shipments",
       theme: {
         bg: "bg-violet-50 dark:bg-violet-950/30",
         text: "text-violet-600 dark:text-violet-400",
@@ -74,7 +74,7 @@ export default function ModernReportsDashboard() {
       title: "Packages",
       description: "Inventory & dispatch",
       icon: Package,
-      href: "/",
+      href: "/reports/packages",
 
       theme: {
         bg: "bg-amber-50 dark:bg-amber-950/30",
@@ -88,7 +88,7 @@ export default function ModernReportsDashboard() {
       title: "Jobs",
       description: "Active work orders",
       icon: Briefcase,
-      href: "/",
+      href: "/reports/jobs",
 
       theme: {
         bg: "bg-indigo-50 dark:bg-indigo-950/30",
@@ -102,7 +102,7 @@ export default function ModernReportsDashboard() {
       title: "Time-outs",
       description: "Downtimes & delays",
       icon: Clock,
-      href: "/",
+      href: "/reports/time-out",
 
       theme: {
         bg: "bg-rose-50 dark:bg-rose-950/30",

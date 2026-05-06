@@ -12,7 +12,6 @@ import { useAtom } from "jotai"
 import { Search, SearchIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
-import { ApiJobsData } from "@/app/api/reports/jobs/route"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
@@ -23,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTableTheme } from "@/hooks/use-tableTheme"
+import { trpc } from "@/lib/trpc/client"
+import type { ApiJobsData } from "@/server/reports/jobs"
 
 import {
   BoxCellRenderer,
@@ -31,7 +32,6 @@ import {
   PanelCellRender,
   StatusCellRenderer,
 } from "../CellsRender"
-import { filteredData, fromStore, initData, toStore } from "./atoms"
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
@@ -47,8 +47,6 @@ export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
   const [selectedRows, setSelectedRows] = useState<ApiJobsData[]>([])
   const [filter, setFilter] = useState("")
-  const [, setInitPanels] = useAtom(initData)
-  const [panels, setPanels] = useAtom(filteredData)
   const theme = useTableTheme()
   // const [from, setFrom] = useAtom(fromStore);
   // const [to, setTo] = useAtom(toStore);
@@ -60,19 +58,11 @@ export default function ReportPage() {
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["shipment", filter],
-    queryFn: async () => {
-      const data = await fetchPanels()
-      setInitPanels(data)
-      setPanels(data)
-      return data
-    },
-    refetchOnWindowFocus: false,
-    gcTime: Infinity,
-    staleTime: Infinity,
-    enabled: false,
+  } = trpc.jobs.getJobs.useQuery({
+    filter: filter,
   })
+
+  console.log(tableData)
 
   const fetchPanels = useCallback(async (): Promise<ApiJobsData[]> => {
     // const fromParam = from ? formatDateForAPI(from) : "";
@@ -234,7 +224,7 @@ export default function ReportPage() {
       <CardContent className="p-0 h-full">
         <div className="ag-theme-alpine h-full w-full">
           <AgGridReact
-            rowData={panels}
+            rowData={tableData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
@@ -250,11 +240,6 @@ export default function ReportPage() {
       <CardFooter>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           <span>Total Jobs: {tableData.length}</span>
-          {/* {selectedRows.length > 0 && (
-            <span className="pl-4 ml-2 border-l-2 border-foreground">
-              Selected Panels: {selectedRows.length}
-            </span>
-          )} */}
         </div>
       </CardFooter>
     </Card>

@@ -18,19 +18,7 @@ export interface ApiJobsData {
 }
 
 // 2. Define the Schema (Reusable)
-const FilterSchema = z
-  .enum([
-    "future",
-    "today",
-    "last30days",
-    "last90days",
-    "1year",
-    "2years",
-    "3years",
-    "5years",
-    "all",
-  ])
-  .default("all")
+const FilterSchema = z.string().default("")
 
 export const jobsRouter = router({
   getJobs: publicProcedure
@@ -38,35 +26,42 @@ export const jobsRouter = router({
     .query(async ({ input }) => {
       try {
         const { filter } = input
-        let whereClause = "WHERE 1=1"
+        let whereClause = ""
 
-        // Logic for SQL date filtering
+        // 1. Identify the filter and build the WHERE clause
         switch (filter) {
           case "future":
-            whereClause += " AND u.date06 >= CURDATE() + INTERVAL 1 DAY"
+            whereClause = "WHERE u.date06 >= CURDATE() + INTERVAL 1 DAY"
             break
           case "today":
-            whereClause +=
-              " AND u.date06 >= CURDATE() AND u.date06 < CURDATE() + INTERVAL 1 DAY"
+            whereClause =
+              "WHERE u.date06 >= CURDATE() AND u.date06 < CURDATE() + INTERVAL 1 DAY"
             break
           case "last30days":
-            whereClause += " AND u.date06 >= CURDATE() - INTERVAL 30 DAY"
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 30 DAY"
+            break
+          case "last7days":
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 7 DAY"
             break
           case "last90days":
-            whereClause += " AND u.date06 >= CURDATE() - INTERVAL 90 DAY"
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 90 DAY"
             break
           case "1year":
-            whereClause += " AND u.date06 >= CURDATE() - INTERVAL 1 YEAR"
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 1 YEAR"
             break
           case "2years":
-            whereClause += " AND u.date06 >= CURDATE() - INTERVAL 2 YEAR"
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 2 YEAR"
             break
           case "3years":
-            whereClause += " AND u.date06 >= CURDATE() - INTERVAL 3 YEAR"
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 3 YEAR"
             break
           case "5years":
-            whereClause += " AND u.date06 >= CURDATE() - INTERVAL 5 YEAR"
+            whereClause = "WHERE u.date06 >= CURDATE() - INTERVAL 5 YEAR"
             break
+          default:
+            // 2. RETURN EMPTY ARRAY IMMEDIATELY
+            // This skips the SQL execution entirely if no valid filter is provided
+            return []
         }
 
         const sql = `
@@ -93,7 +88,6 @@ export const jobsRouter = router({
 
         const [rawRows] = (await mes.execute(sql)) as [any[], any]
 
-        // 3. Map the raw DB result (0/1) to Booleans
         return rawRows.map((row) => ({
           ...row,
           has_printed_panel: Boolean(row.has_printed_panel),
@@ -104,7 +98,6 @@ export const jobsRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch jobs data",
-          cause: error,
         })
       }
     }),
