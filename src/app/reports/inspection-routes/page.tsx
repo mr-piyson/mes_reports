@@ -1,5 +1,4 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
 import type { ColDef, GridApi, GridReadyEvent } from "ag-grid-community"
 import {
   AllCommunityModule,
@@ -7,12 +6,9 @@ import {
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import axios from "axios"
-import { useAtom } from "jotai"
-import { CircleDot, SearchIcon } from "lucide-react"
+import { SearchIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
@@ -23,10 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTableTheme } from "@/hooks/use-tableTheme"
+import { trpc } from "@/lib/trpc/client"
 
 import { RouteCellRenderer } from "../CellsRender"
+
 // Types
-import { type ReportData, filterStore, filteredData, initData } from "./atoms"
 
 interface ApiReportData {
   panel_serial: string
@@ -75,10 +72,10 @@ const PanelCellRender = ({ value }: { value: string }) => {
 
 export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState<ReportData[]>([])
-  const [filter, setFilter] = useAtom(filterStore)
-  const [, setInitPanels] = useAtom(initData)
-  const [panels, setPanels] = useAtom(filteredData)
+  const [selectedRows, setSelectedRows] = useState([])
+  const [filter, setFilter] = useState("")
+  const [, setInitPanels] = useState()
+  const [panels, setPanels] = useState()
   const theme = useTableTheme()
 
   // React Query for data fetching
@@ -88,34 +85,10 @@ export default function ReportPage() {
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["panels", filter],
-    queryFn: async () => {
-      const data = await fetchPanels()
-      setInitPanels(data)
-      setPanels(data)
-      return data
-    },
-    refetchOnWindowFocus: false,
-    gcTime: Infinity,
-    staleTime: Infinity,
-  })
-
-  const fetchPanels = useCallback(async (): Promise<ReportData[]> => {
-    const response = await axios.get(
-      `/api/reports/inspections-routes?filter=${filter}`
-    )
-
-    return response.data.map((item: ApiReportData) => ({
-      panel_serial: item.panel_serial,
-      project: item.project,
-      latest_out: new Date(item.latest_out),
-      route: item.route ? item.route.split(",") : [],
-    }))
-  }, [filter])
+  } = trpc.inspections.getResults.useQuery({})
 
   // Memoized column definitions
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs = useMemo<ColDef[]>(
     () => [
       {
         headerName: "Panel Serial",
@@ -170,12 +143,6 @@ export default function ReportPage() {
   const onGridReady = useCallback((params: GridReadyEvent) => {
     setGridApi(params.api)
   }, [])
-
-  const onRowSelectionChanged = useCallback(() => {
-    if (gridApi) {
-      setSelectedRows(gridApi.getSelectedRows())
-    }
-  }, [gridApi])
 
   const refreshData = useCallback(() => {
     if (gridApi) {
@@ -275,7 +242,6 @@ export default function ReportPage() {
             suppressMenuHide={true}
             theme={theme}
             loading={isLoading}
-            onSelectionChanged={onRowSelectionChanged}
           />
         </div>
       </CardContent>

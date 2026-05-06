@@ -1,8 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-import type { ReportData } from "./panels/atoms"
-
 export const StatusCellRenderer = (props: {
   value: boolean
   whenFalse?: React.ReactNode
@@ -38,7 +36,7 @@ export const PanelCellRender = ({ value }: { value: string }) => {
   )
 }
 
-export const ContainerCellRenderer = ({ data }: { data: ReportData }) => (
+export const ContainerCellRenderer = ({ data }: { data: any }) => (
   <div className="flex justify-between items-center">
     <span className="text-md font-semibold">{data.container}</span>
     {data.container && (
@@ -62,7 +60,7 @@ export const ContainerCellRenderer = ({ data }: { data: ReportData }) => (
   </div>
 )
 
-export const BoxCellRenderer = ({ data }: { data: ReportData }) => (
+export const BoxCellRenderer = ({ data }: { data: any }) => (
   <div className="flex justify-between items-center">
     <span className="text-md font-semibold">{data.package}</span>
     {data.package && (
@@ -85,15 +83,6 @@ export const BoxCellRenderer = ({ data }: { data: ReportData }) => (
     )}
   </div>
 )
-
-// const DateCellRenderer = ({ value }: { value: string }) => {
-//   if (!value) return null;
-//   const date = new Date(value);
-//   const day = String(date.getDate()).padStart(2, "0");
-//   const month = String(date.getMonth() + 1).padStart(2, "0");
-//   const year = date.getFullYear();
-//   return `${day}/${month}/${year}`;
-// };
 
 export const JobCellRenderer = ({ value }: { value: string }) => {
   if (!value) return null

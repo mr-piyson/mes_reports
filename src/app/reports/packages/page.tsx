@@ -1,5 +1,4 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
 import type { ColDef, GridApi, GridReadyEvent } from "ag-grid-community"
 import {
   AllCommunityModule,
@@ -7,9 +6,6 @@ import {
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import axios from "axios"
-import { useAtom } from "jotai"
-import { SearchIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -25,10 +21,6 @@ import { useTableTheme } from "@/hooks/use-tableTheme"
 import { trpc } from "@/lib/trpc/client"
 
 import { BoxCellRenderer } from "../CellsRender"
-
-interface ImportDialogProps {
-  children?: React.ReactNode
-}
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
@@ -52,7 +44,6 @@ export default function ReportPage() {
   const [selectedRows, setSelectedRows] = useState([])
   const [filter, setFilter] = useState("")
   const [, setInitPanels] = useState()
-  const [panels, setPanels] = useState()
   const theme = useTableTheme()
 
   // React Query for data fetching
@@ -67,7 +58,7 @@ export default function ReportPage() {
   })
 
   // Memoized column definitions
-  const columnDefs = useMemo(
+  const columnDefs = useMemo<ColDef[]>(
     () => [
       {
         headerName: "Box Code",
@@ -76,7 +67,7 @@ export default function ReportPage() {
         sortable: true,
         filter: true,
         flex: 1,
-        cellRenderer: BoxCellRenderer,
+        //cellRenderer: BoxCellRenderer,
       },
       {
         headerName: "Project Name",
@@ -257,7 +248,7 @@ export default function ReportPage() {
       <CardContent className="p-0 h-full">
         <div className="ag-theme-alpine h-full w-full">
           <AgGridReact
-            rowData={panels}
+            rowData={tableData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
@@ -272,7 +263,7 @@ export default function ReportPage() {
 
       <CardFooter>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <span>Total Panels: {tableData.length}</span>
+          <span>Total Boxes: {tableData.length}</span>
           {selectedRows.length > 0 && (
             <span className="pl-4 ml-2 border-l-2 border-foreground">
               Selected Panels: {selectedRows.length}
