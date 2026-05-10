@@ -70,6 +70,10 @@ export const inspectionsRouter = router({
         const conditions: string[] = []
         const values: any[] = []
 
+        console.log("Input Dates:", { from, to })
+        console.log("SQL Conditions:", conditions)
+        console.log("SQL Values:", values)
+
         // 1. Build Dynamic Query
         if (from) {
           conditions.push("ir.date >= ?")
@@ -111,6 +115,8 @@ export const inspectionsRouter = router({
           query,
           values
         )
+
+        console.log("Raw Rows Count:", rows.length)
 
         // 2. In-memory Deduplication (Keep oldest entry per Serial + Gate)
         const dedupedMap = new Map<string, APIInspectionResult>()

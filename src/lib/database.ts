@@ -17,6 +17,8 @@ class DatabaseManager {
         connectionLimit: 10,
         queueLimit: 0,
         enableKeepAlive: true,
+        timezone: "+03:00",
+        dateStrings: true, // This stops JS from converting DB dates into local JS Date objects
       })
     }
     return this.mesPool
