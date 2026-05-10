@@ -82,6 +82,8 @@ export default function ReportPage() {
     }
   )
 
+  console.log(tableData)
+
   // Calculations based on fetched data
   const metrics = useMemo(() => {
     const data = tableData || []
@@ -263,7 +265,7 @@ function MetricCard({
   destructive?: boolean
 }) {
   return (
-    <div className="px-4 py-2 bg-background border rounded-xl shadow-sm flex flex-col justify-center min-w-[120px]">
+    <div className="px-4 py-2 bg-background border rounded-xl shadow-sm flex flex-col justify-center min-w-30">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
         {label}
       </span>
