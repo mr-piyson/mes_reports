@@ -82,8 +82,6 @@ export default function ReportPage() {
     }
   )
 
-  console.log(tableData)
-
   // Calculations based on fetched data
   const metrics = useMemo(() => {
     const data = tableData || []
