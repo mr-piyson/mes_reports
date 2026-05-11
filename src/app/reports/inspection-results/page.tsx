@@ -5,6 +5,7 @@ import {
   type ColDef,
   CsvExportModule,
   type GridApi,
+  GridOptions,
   type GridReadyEvent,
   ModuleRegistry,
 } from "ag-grid-community"
@@ -91,18 +92,38 @@ export default function ReportPage() {
     return { total, percentage }
   }, [tableData])
 
-  // AG Grid Column Definitions
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      // --- FIXED WIDTH & SCROLLING ---
+      width: 180, // Default width for all columns
+      suppressSizeToFit: true, // Crucial: Stops the grid from squishing columns to fit screen
+      resizable: false, // Optional: Set to true if you want users to manual resize
+
+      // --- DISABLE DRAGGING ---
+      suppressMovable: true, // Prevents individual columns from being dragged
+
+      // --- STANDARD FEATURES ---
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      // flex: 1,              // NEVER include flex if you want horizontal scrolling
+    }),
+    []
+  )
+
+  // 2. The Column Definitions (Now much cleaner)
   const columnDefs = useMemo<ColDef<InspectionResult>[]>(
     () => [
       {
-        headerName: "Panel ID",
+        flex: 1,
         field: "panel_serial",
+        headerName: "Panel ID",
         cellRenderer: PanelCellRender,
-        flex: 1.5,
+        minWidth: 280,
       },
       { field: "epicor_asm_part_no", headerName: "ASM Part No" },
+      { field: "project", flex: 1, minWidth: 250 },
       { field: "gate" },
-      { field: "project" },
       {
         field: "datetime",
         headerName: "Date & Time",
@@ -110,8 +131,9 @@ export default function ReportPage() {
       },
       { field: "factory" },
       {
-        headerName: "Result",
         field: "inspection_result",
+        headerName: "Result",
+        maxWidth: 80,
         cellRenderer: (params: any) => (
           <StatusCellRenderer
             value={params.value}
@@ -121,17 +143,6 @@ export default function ReportPage() {
         ),
       },
     ],
-    []
-  )
-
-  const defaultColDef = useMemo<ColDef>(
-    () => ({
-      resizable: true,
-      sortable: true,
-      filter: true,
-      floatingFilter: true,
-      flex: 1,
-    }),
     []
   )
 
@@ -242,10 +253,10 @@ export default function ReportPage() {
           <AgGridReact
             rowData={tableData}
             columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
             onGridReady={onGridReady}
             theme={theme}
             loading={isFetching}
+            defaultColDef={defaultColDef}
           />
         </div>
       </div>
