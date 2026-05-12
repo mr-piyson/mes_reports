@@ -20,7 +20,7 @@ export type APIInspectionResult = RowDataPacket & {
   factory: string
 }
 
-export interface InspectionResultDTO {
+export interface InspectionResult {
   id: number
   panel_serial: string
   project: string
@@ -30,7 +30,18 @@ export interface InspectionResultDTO {
   gate: string
   inspection_result: boolean
   inspector: string
-  epicor_asm_part_no: string
+  epicor_asm_part_no: string | null
+  image: string | null
+  // --- Add these optional fields for Gate 5 ---
+  paint_batch_no?: string
+  delta_e?: number
+  gloss?: number
+  l_value?: number
+  a_value?: number
+  b_value?: number
+  delta_l?: number
+  delta_a?: number
+  delta_b?: number
 }
 
 const gateMap: Record<number, string> = {
@@ -61,12 +72,12 @@ export const inspectionsRouter = router({
       z.object({
         from: z.date().optional().nullable(),
         to: z.date().optional().nullable(),
-        gates: z.array(z.number()).optional().default([]),
+        gate: z.number().optional(),
       })
     )
     .query(async ({ input }) => {
       try {
-        const { from, to, gates } = input
+        const { from, to, gate } = input
         const conditions: string[] = []
         const values: any[] = []
 
@@ -79,35 +90,54 @@ export const inspectionsRouter = router({
           conditions.push("ir.date <= ?")
           values.push(to)
         }
-        if (gates.length > 0 && gates[0] !== 0) {
-          const placeholders = gates.map(() => "?").join(",")
-          conditions.push(`ir.gate IN (${placeholders})`)
-          values.push(...gates)
+        if (gate !== undefined && gate !== 0) {
+          conditions.push("ir.gate = ?")
+          values.push(gate)
         }
 
         const whereClause = conditions.length
           ? `WHERE ${conditions.join(" AND ")}`
           : ""
 
+        const selectColumns = [
+          "ir.id",
+          "ir.panel_serial",
+          "u.shortchar01 AS epicor_asm_part_no",
+          "ir.project",
+          "ir.datetime",
+          "ir.date",
+          "ir.gate",
+          "ir.inspection_result",
+          "ir.inspector",
+          "ir.factory",
+          "d.image",
+        ]
+
+        console.log(gate)
+        if (gate === 5) {
+          selectColumns.push(
+            "ir.delta_e",
+            "ir.l_value",
+            "ir.a_value",
+            "ir.b_value",
+            "ir.delta_l",
+            "ir.delta_a",
+            "ir.delta_b",
+            "ir.paint_batch_no",
+            "ir.gloss"
+          )
+        }
+
         const query = `
-          SELECT 
-              ir.id,
-              ir.panel_serial,
-              u.shortchar01 AS epicor_asm_part_no,
-              ir.project,
-              ir.datetime,
-              ir.date,
-              ir.gate,
-              ir.inspection_result,
-              ir.inspector,
-              ir.factory,
-              d.image 
-          FROM quality.inspection_results ir
-          LEFT JOIN quality.defects d ON ir.id = d.inspection_id
-          LEFT JOIN label_app.ud31 u ON ir.panel_serial = u.key5
-          ${whereClause}
-          ORDER BY ir.datetime DESC;
-        `
+            SELECT 
+                ${selectColumns.join(",\n      ")}
+            FROM quality.inspection_results ir
+            LEFT JOIN quality.defects d ON ir.id = d.inspection_id
+            LEFT JOIN label_app.ud31 u ON ir.panel_serial = u.key5
+            ${whereClause}
+            ORDER BY ir.datetime DESC;
+          `
+        console.log("Executing Query:", query)
 
         const [rows] = await db.mes.execute<APIInspectionResult[]>(
           query,
@@ -129,21 +159,33 @@ export const inspectionsRouter = router({
         }
 
         // 3. Transform to DTO
-        const result: InspectionResultDTO[] = Array.from(
-          dedupedMap.values()
-        ).map((row) => ({
-          id: row.id,
-          panel_serial: row.panel_serial,
-          project: row.project,
-          date: new Date(row.date).toISOString(),
-          datetime: new Date(row.datetime).toISOString(),
-          factory: row.factory,
-          gate: gateMap[row.gate] ?? "Unknown",
-          inspection_result: row.inspection_result === "OK",
-          inspector: row.inspector,
-          image: row.image,
-          epicor_asm_part_no: row.epicor_asm_part_no,
-        }))
+        const result: InspectionResult[] = Array.from(dedupedMap.values()).map(
+          (row) => ({
+            id: row.id,
+            panel_serial: row.panel_serial,
+            project: row.project,
+            date: new Date(row.date).toISOString(),
+            datetime: new Date(row.datetime).toISOString(),
+            factory: row.factory,
+            gate: gateMap[row.gate] ?? "Unknown",
+            inspection_result: row.inspection_result === "OK",
+            inspector: row.inspector,
+            image: row.image,
+            epicor_asm_part_no: row.epicor_asm_part_no,
+            // Additional fields for Gate 5
+            ...(gate === 5 && {
+              delta_e: row.delta_e,
+              l_value: row.l_value,
+              a_value: row.a_value,
+              b_value: row.b_value,
+              delta_l: row.delta_l,
+              delta_a: row.delta_a,
+              delta_b: row.delta_b,
+              paint_batch_no: row.paint_batch_no,
+              gloss: row.gloss,
+            }),
+          })
+        )
 
         return result
       } catch (error) {

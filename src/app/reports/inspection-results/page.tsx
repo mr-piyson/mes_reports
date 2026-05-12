@@ -36,6 +36,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTableTheme } from "@/hooks/use-tableTheme"
 import { trpc } from "@/lib/trpc/client"
+import type { InspectionResult } from "@/server/reports/inspection-results"
 
 import {
   DateCellRenderer,
@@ -44,17 +45,6 @@ import {
 } from "../CellsRender"
 
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
-
-interface InspectionResult {
-  panel_serial: string
-  epicor_asm_part_no: string
-  gate: string
-  project: string
-  datetime: string
-  image: string | null
-  factory: string
-  inspection_result: boolean
-}
 
 const GATE_OPTIONS = [
   { value: "0", label: "All" },
@@ -90,7 +80,7 @@ export default function ReportPage() {
     {
       from: from,
       to: to,
-      gates: [Number(gate)],
+      gate: gate ? Number(gate) : undefined,
     },
     {
       enabled: !!from && !!to,
@@ -126,8 +116,8 @@ export default function ReportPage() {
   )
 
   // 2. The Column Definitions (Now much cleaner)
-  const columnDefs = useMemo<ColDef<InspectionResult>[]>(
-    () => [
+  const columnDefs = useMemo<ColDef<InspectionResult>[]>(() => {
+    const cols: ColDef<InspectionResult>[] = [
       {
         field: "inspection_result",
         headerName: "Result",
@@ -148,13 +138,13 @@ export default function ReportPage() {
         minWidth: 280,
       },
       { field: "epicor_asm_part_no", headerName: "ASM Part No" },
+
       {
         field: "image",
         headerName: "Defect Image",
         width: 135,
         cellRenderer: (params: any) => {
           const value = params.value
-
           return (
             <Dialog>
               <DialogTrigger asChild>
@@ -168,28 +158,17 @@ export default function ReportPage() {
                   )}
                 </Button>
               </DialogTrigger>
-
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Image Preview</DialogTitle>
                 </DialogHeader>
-
                 <div className="flex justify-center">
-                  {value ? (
+                  {value && (
                     <img
-                      src={
-                        value.startsWith("http:/") &&
-                        !value.startsWith("http://")
-                          ? value.replace("http:/", "http://")
-                          : value
-                      }
+                      src={value.replace("http:/", "http://")}
                       alt="Preview"
                       className="max-h-[70vh] rounded-md object-contain"
                     />
-                  ) : (
-                    <div className="text-muted-foreground">
-                      No image available
-                    </div>
                   )}
                 </div>
               </DialogContent>
@@ -197,17 +176,53 @@ export default function ReportPage() {
           )
         },
       },
+
+      // --- FIX 1: gate is a string ("5"), not a number (5) ---
+      ...(gate === "5"
+        ? ([
+            { field: "paint_batch_no", headerName: "Batch No", width: 120 },
+            {
+              field: "delta_e",
+              headerName: "ΔE",
+              width: 90,
+              type: "numericColumn",
+            },
+            {
+              field: "gloss",
+              headerName: "Gloss",
+              width: 90,
+              type: "numericColumn",
+            },
+            {
+              headerName: "Values",
+              children: [
+                { field: "l_value", headerName: "L", width: 80 },
+                { field: "a_value", headerName: "a", width: 80 },
+                { field: "b_value", headerName: "b", width: 80 },
+              ],
+            },
+            {
+              headerName: "Deltas",
+              children: [
+                { field: "delta_l", headerName: "ΔL", width: 80 },
+                { field: "delta_a", headerName: "Δa", width: 80 },
+                { field: "delta_b", headerName: "Δb", width: 80 },
+              ],
+            },
+          ] as ColDef<InspectionResult>[]) // FIX 2: Cast to bypass strict NestedFieldPaths
+        : []),
       { field: "project", flex: 1, minWidth: 250 },
-      { field: "gate" },
+      { field: "gate", width: 120 },
       {
         field: "datetime",
         headerName: "Date & Time",
         cellRenderer: DateCellRenderer,
       },
-      { field: "factory" },
-    ],
-    []
-  )
+      { field: "factory", width: 100 },
+    ]
+
+    return cols
+  }, [gate])
 
   // Actions
   const onGridReady = (params: GridReadyEvent<InspectionResult>) =>
