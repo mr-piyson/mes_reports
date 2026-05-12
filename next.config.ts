@@ -17,7 +17,8 @@ const nextConfig: NextConfig = {
       {
         protocol: "http",
         hostname: "intranet.bfginternational.com",
-        pathname: "**",
+        port: "88",
+        pathname: "/storage/**",
       },
     ],
   },

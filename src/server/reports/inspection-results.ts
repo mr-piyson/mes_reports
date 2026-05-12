@@ -91,18 +91,20 @@ export const inspectionsRouter = router({
 
         const query = `
           SELECT 
-            ir.id,
-            ir.panel_serial,
-            u.shortchar01 AS epicor_asm_part_no,
-            ir.project,
-            ir.datetime,
-            ir.date,
-            ir.gate,
-            ir.inspection_result,
-            ir.inspector,
-            ir.factory
+              ir.id,
+              ir.panel_serial,
+              u.shortchar01 AS epicor_asm_part_no,
+              ir.project,
+              ir.datetime,
+              ir.date,
+              ir.gate,
+              ir.inspection_result,
+              ir.inspector,
+              ir.factory,
+              d.image 
           FROM quality.inspection_results ir
-          LEFT JOIN label_app.ud31 u ON u.key5 = ir.panel_serial
+          LEFT JOIN quality.defects d ON ir.id = d.inspection_id
+          LEFT JOIN label_app.ud31 u ON ir.panel_serial = u.key5
           ${whereClause}
           ORDER BY ir.datetime DESC;
         `
@@ -139,6 +141,7 @@ export const inspectionsRouter = router({
           gate: gateMap[row.gate] ?? "Unknown",
           inspection_result: row.inspection_result === "OK",
           inspector: row.inspector,
+          image: row.image,
           epicor_asm_part_no: row.epicor_asm_part_no,
         }))
 

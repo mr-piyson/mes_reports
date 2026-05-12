@@ -10,11 +10,24 @@ import {
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
-import { ChevronDownIcon, FileSpreadsheet, Search } from "lucide-react"
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FileSpreadsheet,
+  Search,
+} from "lucide-react"
+import Image from "next/image"
 import { useCallback, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   Popover,
   PopoverContent,
@@ -38,6 +51,7 @@ interface InspectionResult {
   gate: string
   project: string
   datetime: string
+  image: string | null
   factory: string
   inspection_result: boolean
 }
@@ -115,22 +129,6 @@ export default function ReportPage() {
   const columnDefs = useMemo<ColDef<InspectionResult>[]>(
     () => [
       {
-        flex: 1,
-        field: "panel_serial",
-        headerName: "Panel ID",
-        cellRenderer: PanelCellRender,
-        minWidth: 280,
-      },
-      { field: "epicor_asm_part_no", headerName: "ASM Part No" },
-      { field: "project", flex: 1, minWidth: 250 },
-      { field: "gate" },
-      {
-        field: "datetime",
-        headerName: "Date & Time",
-        cellRenderer: DateCellRenderer,
-      },
-      { field: "factory" },
-      {
         field: "inspection_result",
         headerName: "Result",
         maxWidth: 80,
@@ -142,6 +140,71 @@ export default function ReportPage() {
           />
         ),
       },
+      {
+        flex: 1,
+        field: "panel_serial",
+        headerName: "Panel ID",
+        cellRenderer: PanelCellRender,
+        minWidth: 280,
+      },
+      { field: "epicor_asm_part_no", headerName: "ASM Part No" },
+      {
+        field: "image",
+        headerName: "Defect Image",
+        width: 135,
+        cellRenderer: (params: any) => {
+          const value = params.value
+
+          return (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="link" className="p-0 h-auto" disabled={!value}>
+                  {!value ? (
+                    "-"
+                  ) : (
+                    <span className="flex flex-row justify-center items-center">
+                      View Image <ChevronRightIcon className="ml-2 size-4" />
+                    </span>
+                  )}
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Image Preview</DialogTitle>
+                </DialogHeader>
+
+                <div className="flex justify-center">
+                  {value ? (
+                    <img
+                      src={
+                        value.startsWith("http:/") &&
+                        !value.startsWith("http://")
+                          ? value.replace("http:/", "http://")
+                          : value
+                      }
+                      alt="Preview"
+                      className="max-h-[70vh] rounded-md object-contain"
+                    />
+                  ) : (
+                    <div className="text-muted-foreground">
+                      No image available
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )
+        },
+      },
+      { field: "project", flex: 1, minWidth: 250 },
+      { field: "gate" },
+      {
+        field: "datetime",
+        headerName: "Date & Time",
+        cellRenderer: DateCellRenderer,
+      },
+      { field: "factory" },
     ],
     []
   )
