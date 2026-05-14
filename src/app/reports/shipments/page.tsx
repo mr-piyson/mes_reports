@@ -36,8 +36,6 @@ export default function ReportPage() {
   const [selectedRows, setSelectedRows] = useState<[]>([])
   const [year, setYear] = useState<number>(new Date().getFullYear())
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1)
-  const [, setInitPanels] = useState()
-  const [panels, setPanels] = useState()
   const theme = useTableTheme()
 
   // React Query for data fetching
@@ -256,7 +254,7 @@ export default function ReportPage() {
       <CardContent className="p-0 h-full">
         <div className="ag-theme-alpine h-full w-full">
           <AgGridReact
-            rowData={panels}
+            rowData={tableData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
