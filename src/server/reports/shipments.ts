@@ -64,19 +64,13 @@ export const shippingRouter = router({
           AND c.id IS NOT NULL 
         ORDER BY i.project_category DESC
       `
-      console.log(
-        "Executing SQL query with parameters:",
-        startDate,
-        endDate,
-        sql
-      )
 
       try {
         // Use the range [startDate, endDate] instead of the formatted string
         const [rows] = await mes.execute<
           RowDataPacket[] & ShippedPackageData[]
         >(sql, [startDate, endDate])
-        
+
         return rows as ShippedPackageData[]
       } catch (error) {
         console.error("Database error:", error)

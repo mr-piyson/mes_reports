@@ -113,7 +113,6 @@ export const inspectionsRouter = router({
           "d.image",
         ]
 
-        console.log(gate)
         if (gate === 5) {
           selectColumns.push(
             "ir.delta_e",
@@ -137,8 +136,6 @@ export const inspectionsRouter = router({
             ${whereClause}
             ORDER BY ir.datetime DESC;
           `
-        console.log("Executing Query:", query)
-
         const [rows] = await db.mes.execute<APIInspectionResult[]>(
           query,
           values
