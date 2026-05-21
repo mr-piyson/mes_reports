@@ -9,6 +9,7 @@
  */
 import { t } from "@/lib/trpc/server"
 
+import { chartsRouter } from "./charts/inspections"
 import { inspectionsRouter } from "./reports/inspection-results"
 import { qualityRouter } from "./reports/inspections"
 import { jobsRouter } from "./reports/jobs"
@@ -25,6 +26,7 @@ export const appRouter = t.router({
   timeOut: timeOutRouter,
   inspections: inspectionsRouter,
   quality: qualityRouter,
+  charts: chartsRouter,
 })
 
 export type AppRouter = typeof appRouter
