@@ -1,5 +1,6 @@
 "use client"
 
+import { Loader2 } from "lucide-react"
 import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 

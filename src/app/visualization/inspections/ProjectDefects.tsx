@@ -1,6 +1,6 @@
 "use client"
 
-import { TrendingUp } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
 import {
@@ -17,25 +17,16 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { trpc } from "@/lib/trpc/client"
 
-export const description = "A bar chart with a custom label"
-
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-]
+interface TotalDefectsChartProps extends React.ComponentProps<typeof Card> {
+  from?: Date | null
+  to?: Date | null
+}
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--chart-2)",
-  },
-  mobile: {
-    label: "Mobile",
+  defect_count: {
+    label: "Defects",
     color: "var(--chart-2)",
   },
   label: {
@@ -43,62 +34,95 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartBarLabelCustom(props: any) {
+export function Total_Defects_Per_Type_Chart({
+  from,
+  to,
+  ...props
+}: TotalDefectsChartProps) {
+  // 1. Fetch live data from the new tRPC endpoint
+  const { data: chartData, isLoading } =
+    trpc.charts.get_defect_counts_by_type.useQuery({
+      from,
+      to,
+      limit: 6,
+    })
+
   return (
     <Card {...props}>
       <CardHeader>
-        <CardTitle>Bar Chart - Custom Label</CardTitle>
+        <CardTitle>Total Defects Per Type</CardTitle>
+        <CardDescription>
+          {from && to
+            ? `Filtered from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`
+            : "Showing all-time recorded defects"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
-          <BarChart
-            accessibilityLayer
-            data={chartData}
-            layout="vertical"
-            margin={{
-              right: 16,
-            }}
-          >
-            <CartesianGrid horizontal={false} />
-            <YAxis
-              dataKey="month"
-              type="category"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-              tickFormatter={(value) => value.slice(0, 3)}
-              hide
-            />
-            <XAxis dataKey="desktop" type="number" hide />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
-            />
-            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4}>
-              <LabelList
-                dataKey="month"
-                position="insideLeft"
-                offset={8}
-                className="fill-(--color-label)"
-                fontSize={12}
+        {isLoading ? (
+          // Smooth loading state instead of an empty layout break
+          <div className="flex h-75 items-center justify-center text-muted-foreground gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Loading defect analytics...</span>
+          </div>
+        ) : !chartData || chartData.length === 0 ? (
+          <div className="flex h-75 items-center justify-center text-muted-foreground">
+            No defect data found for the selected period.
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig}>
+            <BarChart
+              accessibilityLayer
+              data={chartData}
+              layout="vertical"
+              margin={{
+                right: 32, // Margins adjusted to protect text metrics from clipping
+                left: 8,
+              }}
+            >
+              <CartesianGrid horizontal={false} />
+              <YAxis
+                dataKey="defect_type"
+                type="category"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                hide // Keeps layout neat using internal labels instead
               />
-              <LabelList
-                dataKey="desktop"
-                position="right"
-                offset={8}
-                className="fill-foreground"
-                fontSize={12}
+              <XAxis dataKey="defect_count" type="number" hide />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    indicator="line"
+                    nameKey="defect_count"
+                  />
+                }
               />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+              <Bar dataKey="defect_count" fill="var(--chart-2)" radius={4}>
+                {/* Inside Label: Displays the name of the defect */}
+                <LabelList
+                  dataKey="defect_type"
+                  position="insideLeft"
+                  offset={8}
+                  className="fill-(--color-label) font-medium"
+                  fontSize={12}
+                />
+                {/* Outside Label: Displays the raw count value on the far right */}
+                <LabelList
+                  dataKey="defect_count"
+                  position="right"
+                  offset={8}
+                  className="fill-foreground font-semibold"
+                  fontSize={12}
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        )}
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
         <div className="leading-none text-muted-foreground">
-          Showing total visitors for the last 6 months
+          Live factory defect metrics aggregated by registered category logs
         </div>
       </CardFooter>
     </Card>

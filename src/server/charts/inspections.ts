@@ -138,4 +138,81 @@ export const chartsRouter = router({
         })
       }
     }),
+  get_total_defects_per_type: publicProcedure
+    .input(
+      z.object({
+        from: z.date().optional().nullable(),
+        to: z.date().optional().nullable(),
+      })
+    )
+    .query(async ({ input }) => {
+      // ... your existing gate inspections logic
+    }),
+
+  get_defect_counts_by_type: publicProcedure
+    .input(
+      z.object({
+        from: z.date().optional().nullable(),
+        to: z.date().optional().nullable(),
+        limit: z.number().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const { from, to, limit } = input
+
+        // --- Build parameterized query ---
+        const conditions: string[] = []
+        const params: (Date | string | number)[] = []
+
+        // Optional date range filtering for datetime_in
+        if (from) {
+          conditions.push("d.datetime_in >= ?")
+          params.push(from)
+        }
+        if (to) {
+          conditions.push("d.datetime_in <= ?")
+          params.push(to)
+        }
+
+        // Only append WHERE clause if we actually have date filters passed
+        const whereConditions =
+          conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+
+        limit ? params.push(limit) : undefined
+
+        const sql = `
+          SELECT 
+            dl.defect_type,
+            COUNT(d.id) AS defect_count
+          FROM quality.defects d 
+          LEFT JOIN quality.defects_list dl ON d.defect_type = dl.id
+          ${whereConditions}
+          GROUP BY dl.id, dl.defect_type
+          ORDER BY defect_count DESC 
+          ${limit ? `limit ?` : ""}
+        `
+
+        const [rows] = await db.mes.query<
+          (RowDataPacket & {
+            defect_type: string | null
+            defect_count: number
+          })[]
+        >(sql, params)
+
+        // --- Format Data ---
+        // Converts database rows cleanly. Handles potential nulls gracefully if a defect has an orphaned layout ID.
+        return rows.map((row) => ({
+          defect_type: row.defect_type || "Unknown / Unclassified",
+          defect_count: Number(row.defect_count),
+        }))
+      } catch (error) {
+        console.error("tRPC Error (get_defect_counts_by_type):", error)
+        if (error instanceof TRPCError) throw error
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch defect counts by type",
+        })
+      }
+    }),
 })

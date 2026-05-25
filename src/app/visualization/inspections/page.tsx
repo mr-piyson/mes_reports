@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { trpc } from "@/lib/trpc/client"
 
 import { TotalInsectionChart } from "./DefectsLineChart"
-import { ChartBarLabelCustom } from "./ProjectDefects"
+import { Total_Defects_Per_Type_Chart } from "./ProjectDefects"
 import { ChartBarHorizontal } from "./RowLineChart"
 import { ChartBarInteractive } from "./TimeChart"
 
@@ -132,7 +132,7 @@ export default function Visulization(props: VisualizationProps) {
         <div className="flex w-full gap-4">
           <TotalInsectionChart className="flex-1" />
           <ChartBarHorizontal className="flex-1" />
-          <ChartBarLabelCustom className="flex-1" />
+          <Total_Defects_Per_Type_Chart className="flex-1" />
         </div>
       </div>
     </div>
