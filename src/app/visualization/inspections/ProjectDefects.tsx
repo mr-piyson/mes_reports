@@ -19,10 +19,7 @@ import {
 } from "@/components/ui/chart"
 import { trpc } from "@/lib/trpc/client"
 
-interface TotalDefectsChartProps extends React.ComponentProps<typeof Card> {
-  from?: Date | null
-  to?: Date | null
-}
+interface TotalDefectsChartProps extends React.ComponentProps<typeof Card> {}
 
 const chartConfig = {
   defect_count: {
@@ -35,27 +32,16 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function Total_Defects_Per_Type_Chart({
-  from,
-  to,
-  ...props
-}: TotalDefectsChartProps) {
-  // 1. Fetch live data from the new tRPC endpoint
-  const { data: chartData, isLoading } =
-    trpc.charts.get_defect_counts_by_type.useQuery({
-      from,
-      to,
-      limit: 6,
-    })
-
+  data,
+  isLoading,
+}: {
+  data: any
+  isLoading: boolean
+}) {
   return (
-    <Card {...props}>
+    <Card className="flex-1">
       <CardHeader>
         <CardTitle>Total Defects Per Type</CardTitle>
-        <CardDescription>
-          {from && to
-            ? `Filtered from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`
-            : "Showing all-time recorded defects"}
-        </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -64,7 +50,7 @@ export function Total_Defects_Per_Type_Chart({
             <Loader2 className="h-6 w-6 animate-spin" />
             <span>Loading defect analytics...</span>
           </div>
-        ) : !chartData || chartData.length === 0 ? (
+        ) : !data || data.length === 0 ? (
           <div className="flex h-75 items-center justify-center text-muted-foreground">
             No defect data found for the selected period.
           </div>
@@ -72,7 +58,7 @@ export function Total_Defects_Per_Type_Chart({
           <ChartContainer config={chartConfig}>
             <BarChart
               accessibilityLayer
-              data={chartData}
+              data={data}
               layout="vertical"
               margin={{
                 right: 32, // Margins adjusted to protect text metrics from clipping

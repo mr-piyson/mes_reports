@@ -16,7 +16,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { trpc } from "@/lib/trpc/client"
 
 // 1. Map config keys to match our API payload structure
 const chartConfig = {
@@ -30,15 +29,17 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function TotalInsectionChart(props: any) {
+export function TotalInsectionChart({
+  data,
+  isLoading,
+}: {
+  data: { gate_name: string; OK: number; NOK: number }[] | undefined
+  isLoading: boolean
+}) {
   // 2. Fetch data directly from your newly updated tRPC procedure
-  const { data: chartData = [], isLoading } =
-    trpc.charts.get_total_inspections_per_gate.useQuery({
-      gate: 0, // 0 means aggregate all gates
-    })
 
   return (
-    <Card {...props}>
+    <Card className="flex-1">
       <CardHeader>
         <CardTitle>Total Inspection Chart</CardTitle>
         <CardDescription>
@@ -52,15 +53,15 @@ export function TotalInsectionChart(props: any) {
             <Loader2 className="h-6 w-6 animate-spin" />
             <span>Loading defect analytics...</span>
           </div>
-        ) : !chartData || chartData.length === 0 ? (
-          <div className="flex h-75 items-center justify-center text-muted-foreground">
+        ) : !data || data.length === 0 ? (
+          <div className="flex h-75 items-center justify-center text-destructive">
             No data found for the selected period.
           </div>
         ) : (
           <ChartContainer config={chartConfig}>
             <BarChart
               accessibilityLayer
-              data={chartData}
+              data={data}
               margin={{ top: 20 }} // Added spacing to prevent numeric labels from getting clipped
             >
               <CartesianGrid vertical={false} />

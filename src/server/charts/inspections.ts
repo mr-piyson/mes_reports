@@ -40,11 +40,12 @@ export const chartsRouter = router({
         from: z.date().optional().nullable(),
         to: z.date().optional().nullable(),
         gate: z.number().int().min(0).default(0), // 0 = all gates, >0 = specific gate
+        limit: z.number().optional(),
       })
     )
     .query(async ({ input }) => {
       try {
-        const { factory, from, to, gate } = input
+        const { factory, from, to, gate, limit } = input
 
         // Determine which gates to query
         const gatesToQuery = gate === 0 ? ALL_GATES : [gate]
@@ -80,6 +81,8 @@ export const chartsRouter = router({
         params.push(...gatesToQuery)
 
         const whereClause = `WHERE ${conditions.join(" AND ")}`
+        const whereLimit = limit ? `limit = ?` : ""
+        if (limit) params.push(limit)
 
         // Optimized query: Treat anything not exactly 'OK' as NOK
         const sql = `
@@ -94,6 +97,7 @@ export const chartsRouter = router({
           ${whereClause}
           GROUP BY ir.gate, result_category
           ORDER BY ir.gate
+          ${whereLimit}
         `
 
         const [rows] = await db.mes.query<
@@ -137,16 +141,6 @@ export const chartsRouter = router({
           message: "Failed to fetch inspection results",
         })
       }
-    }),
-  get_total_defects_per_type: publicProcedure
-    .input(
-      z.object({
-        from: z.date().optional().nullable(),
-        to: z.date().optional().nullable(),
-      })
-    )
-    .query(async ({ input }) => {
-      // ... your existing gate inspections logic
     }),
 
   get_defect_counts_by_type: publicProcedure
@@ -212,6 +206,95 @@ export const chartsRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch defect counts by type",
+        })
+      }
+    }),
+
+  get_all_stats: publicProcedure
+    .input(
+      z.object({
+        from: z.date().optional().nullable(),
+        to: z.date().optional().nullable(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const { from, to } = input
+
+        // --- Build parameterized query ---
+        const conditions: string[] = []
+        const params: (Date | string | number)[] = []
+
+        // Date range
+        if (from) {
+          conditions.push("ir.datetime >= ?")
+          params.push(from)
+        }
+        if (to) {
+          conditions.push("ir.datetime <= ?")
+          params.push(to)
+        }
+
+        // FIX: Only generate WHERE clause if conditions exist to prevent SQL syntax breaks
+        const whereClause =
+          conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+
+        const sql = `
+          SELECT 
+            COUNT(DISTINCT ir.id) AS total_inspections,
+            COUNT(DISTINCT ir.panel_serial) AS total_panels_inspected,
+            COUNT(DISTINCT CASE WHEN ir.inspection_result != 'OK' THEN ir.panel_serial END) AS total_defect_panels,
+            COUNT(d.id) AS total_defects,
+            ROUND(
+                (COUNT(DISTINCT CASE WHEN ir.inspection_result != 'OK' THEN ir.panel_serial END) * 100.0) / 
+                NULLIF(COUNT(DISTINCT ir.panel_serial), 0), 
+                2
+            ) AS defect_panel_percentage
+          FROM quality.inspection_results ir 
+          LEFT JOIN quality.defects d ON ir.id = d.inspection_id
+          ${whereClause}
+        `
+
+        // Strongly type the expected single row output
+        const [rows] = await db.mes.query<
+          (RowDataPacket & {
+            total_inspections: number
+            total_panels_inspected: number
+            total_defect_panels: number
+            total_defects: number
+            defect_panel_percentage: number | null
+          })[]
+        >(sql, params)
+
+        // Validate that we received data back
+        if (!rows || rows.length === 0) {
+          return {
+            total_inspections: 0,
+            total_panels_inspected: 0,
+            total_defect_panels: 0,
+            total_defects: 0,
+            defect_panel_percentage: 0,
+          }
+        }
+
+        // FIX: Extract the single aggregate row directly for a cleaner frontend payload
+        const stats = rows[0]
+
+        return {
+          total_inspections: Number(stats.total_inspections),
+          total_panels_inspected: Number(stats.total_panels_inspected),
+          total_defect_panels: Number(stats.total_defect_panels),
+          total_defects: Number(stats.total_defects),
+          defect_panel_percentage: stats.defect_panel_percentage
+            ? Number(stats.defect_panel_percentage)
+            : 0,
+        }
+      } catch (error) {
+        console.error("tRPC Error (get_all_stats):", error)
+        if (error instanceof TRPCError) throw error
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch inspection summary stats",
         })
       }
     }),

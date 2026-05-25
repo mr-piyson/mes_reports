@@ -36,9 +36,9 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartBarHorizontal(props: any) {
+export function ChartBarHorizontal({ data = undefined, isLoading = true }) {
   return (
-    <Card {...props}>
+    <Card className="flex-1">
       <CardHeader>
         <CardTitle>Bar Chart - Horizontal</CardTitle>
       </CardHeader>
