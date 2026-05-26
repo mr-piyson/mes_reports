@@ -72,21 +72,19 @@ const PanelCellRender = ({ value }: { value: string }) => {
 
 export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [selectedRows, setSelectedRows] = useState([])
   const [filter, setFilter] = useState("")
-  const [, setInitPanels] = useState()
-  const [panels, setPanels] = useState()
   const theme = useTableTheme()
 
   // React Query for data fetching
   const {
-    data: tableData = [],
+    data,
     isFetching: isLoading,
     isError,
     error,
     refetch,
-  } = trpc.inspections.getResults.useQuery({})
-
+  } = trpc.route.get_inspection_routes.useQuery({
+    filter: filter,
+  })
   // Memoized column definitions
   const columnDefs = useMemo<ColDef[]>(
     () => [
@@ -234,7 +232,7 @@ export default function ReportPage() {
       <CardContent className="p-0 h-full">
         <div className="ag-theme-alpine h-full w-full">
           <AgGridReact
-            rowData={panels}
+            rowData={data}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
@@ -248,12 +246,7 @@ export default function ReportPage() {
 
       <CardFooter>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <span>Total Panels: {tableData.length}</span>
-          {selectedRows.length > 0 && (
-            <span className="pl-4 ml-2 border-l-2 border-foreground">
-              Selected Panels: {selectedRows.length}
-            </span>
-          )}
+          <span>Total Panels: {data?.length}</span>
         </div>
       </CardFooter>
     </Card>

@@ -1,15 +1,9 @@
 "use client"
-import { AlertCircle, ChevronDownIcon, Loader2, Search } from "lucide-react"
+import { AlertCircle, Loader2, Search } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { trpc } from "@/lib/trpc/client"
 
@@ -34,12 +28,19 @@ const GATE_OPTIONS = [
   { value: "6", label: "Final" },
 ]
 
+// Helper to convert native string dates safely to UTC/Local Date objects for tRPC
+const parseDateString = (dateStr: string | undefined): Date | undefined => {
+  if (!dateStr) return undefined
+  const date = new Date(dateStr)
+  return isNaN(date.getTime()) ? undefined : date
+}
+
 export default function Visualization(props: VisualizationProps) {
   const [gate, setGate] = useState<string>("0")
 
-  // Temporary UI state for the calendar popovers
-  const [tempFrom, setTempFrom] = useState<Date | undefined>()
-  const [tempTo, setTempTo] = useState<Date | undefined>()
+  // Native inputs store values as "YYYY-MM-DD" string arrays/states
+  const [tempFrom, setTempFrom] = useState<string>("")
+  const [tempTo, setTempTo] = useState<string>("")
 
   // Applied state that actually triggers the tRPC queries
   const [appliedFrom, setAppliedFrom] = useState<Date | undefined>()
@@ -52,13 +53,13 @@ export default function Visualization(props: VisualizationProps) {
   const { data: totals_per_gate, isFetching: isFetching_per_gate } =
     trpc.charts.get_total_inspections_per_gate.useQuery(
       { from: appliedFrom, to: appliedTo },
-      { enabled: isRangeSelected } // Disables automatic fetch on mount
+      { enabled: isRangeSelected }
     )
 
   // Individual Query 2: Defect Types
   const { data: totals_per_type, isFetching: isFetching_per_type } =
     trpc.charts.get_defect_counts_by_type.useQuery(
-      { from: appliedFrom, to: appliedTo },
+      { from: appliedFrom, to: appliedTo, limit: 6 },
       { enabled: isRangeSelected }
     )
 
@@ -70,8 +71,8 @@ export default function Visualization(props: VisualizationProps) {
     )
 
   const handleSearch = () => {
-    setAppliedFrom(tempFrom)
-    setAppliedTo(tempTo)
+    setAppliedFrom(parseDateString(tempFrom))
+    setAppliedTo(parseDateString(tempTo))
   }
 
   const dynamicSummary = [
@@ -88,62 +89,51 @@ export default function Visualization(props: VisualizationProps) {
     },
   ]
 
-  // Use `isFetching` instead of `isLoading` when dealing with `enabled: false` queries
   const isAnyFetching =
     isFetching_per_gate || isFetching_per_type || isFetching_stats
 
+  // Get today's date formatted as YYYY-MM-DD to use as the `max` ceiling attribute
+  const todayStr = new Date().toISOString().split("T")[0]
+
   return (
-    // Changed to min-h-screen to allow scrolling on mobile if content overflows
     <div className="flex flex-col min-h-screen p-2 md:p-4 gap-4 bg-background">
       {/* Controls Section */}
       <div className="p-4 border-b space-y-4 bg-card shrink-0 rounded-xl border">
-        {/* Changed flex layout to allow inputs to stack on mobile */}
         <div className="flex flex-col md:flex-row flex-wrap items-center gap-3 w-full">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full md:w-[200px] justify-between"
-              >
-                {tempFrom ? tempFrom.toLocaleDateString() : "From Date"}
-                <ChevronDownIcon className="ml-2 size-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={tempFrom}
-                onSelect={setTempFrom}
-                disabled={(d) => d > new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          {/* Native From Date Picker */}
+          <div className="w-full md:w-50 relative">
+            <input
+              type="date"
+              value={tempFrom}
+              max={todayStr}
+              onChange={(e) => setTempFrom(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none dark:[color-scheme:dark]"
+            />
+            {!tempFrom && (
+              <span className="absolute left-3 top-2.5 text-sm text-muted-foreground pointer-events-none">
+                From Date
+              </span>
+            )}
+          </div>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-50 w-full md:w-[200px] justify-between"
-              >
-                {tempTo ? tempTo.toLocaleDateString() : "To Date"}
-                <ChevronDownIcon className="ml-2 size-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={tempTo}
-                onSelect={setTempTo}
-                disabled={(d) =>
-                  d > new Date() || (tempFrom ? d < tempFrom : false)
-                }
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          {/* Native To Date Picker */}
+          <div className="w-full md:w-50 relative">
+            <input
+              type="date"
+              value={tempTo}
+              max={todayStr}
+              min={tempFrom || undefined} // Prevents picking a 'To' date prior to the 'From' date
+              onChange={(e) => setTempTo(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none dark:[color-scheme:dark]"
+            />
+            {!tempTo && (
+              <span className="absolute left-3 top-2.5 text-sm text-muted-foreground pointer-events-none">
+                To Date
+              </span>
+            )}
+          </div>
 
-          {/* Search button is disabled unless both temporary dates are picked */}
+          {/* Search Button */}
           <Button
             onClick={handleSearch}
             disabled={isAnyFetching || !tempFrom || !tempTo}
@@ -159,24 +149,22 @@ export default function Visualization(props: VisualizationProps) {
         </div>
 
         <Tabs value={gate} onValueChange={setGate} className="w-full">
-          {/* Added h-auto and flex-wrap so tabs don't overflow screen boundaries on small devices */}
           <TabsList className="w-full bg-muted/50 h-auto flex-wrap justify-start md:justify-center">
-            {GATE_OPTIONS.map((opt) => (
+            {/* {GATE_OPTIONS.map((opt) => (
               <TabsTrigger
                 key={opt.value}
                 value={opt.value}
-                className="flex-1 min-w-[80px]"
+                className="flex-1 min-w-20"
               >
                 {opt.label}
               </TabsTrigger>
-            ))}
+            ))} */}
           </TabsList>
         </Tabs>
       </div>
 
       {/* Main Content Area */}
       {!isRangeSelected ? (
-        // Empty State: Prompt the user to pick a date
         <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground border-2 border-dashed rounded-xl p-12">
           <AlertCircle className="size-8 mb-4 opacity-50" />
           <h3 className="text-lg font-medium">No Date Range Selected</h3>
@@ -187,16 +175,16 @@ export default function Visualization(props: VisualizationProps) {
         </div>
       ) : (
         <>
-          {/* Summary Cards: 2 columns on mobile, 3 on tablet, 5 on desktop */}
+          {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 shrink-0">
             {dynamicSummary.map((item) => (
               <Card key={item.label}>
-                <CardContent className="flex flex-col items-center justify-center p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-muted-foreground text-center">
+                <CardContent className="flex flex-col items-center justify-center p-2 ">
+                  <div className="text-lg md:text-sm text-muted-foreground text-center">
                     {item.label}
                   </div>
                   {isFetching_stats ? (
-                    <div className="mt-2 flex items-center justify-center h-[32px]">
+                    <div className="mt-2 flex items-center justify-center h-8">
                       <Loader2 className="size-5 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
@@ -211,7 +199,6 @@ export default function Visualization(props: VisualizationProps) {
 
           <div className="flex flex-col gap-4 pb-4">
             <ChartBarInteractive />
-            {/* Charts Area: 1 column on mobile, 3 columns on desktop */}
             <div className="grid grid-cols-1 xl:grid-cols-3 w-full gap-4">
               <TotalInsectionChart
                 data={totals_per_gate}

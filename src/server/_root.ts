@@ -10,7 +10,7 @@
 import { t } from "@/lib/trpc/server"
 
 import { chartsRouter } from "./charts/inspections"
-import { inspectionsRouter } from "./reports/inspection-results"
+import { inspection_route_Router } from "./reports/inspection-routes"
 import { qualityRouter } from "./reports/inspections"
 import { jobsRouter } from "./reports/jobs"
 import { packageRouter } from "./reports/packages"
@@ -19,13 +19,16 @@ import { shippingRouter } from "./reports/shipments"
 import { timeOutRouter } from "./reports/time-out"
 
 export const appRouter = t.router({
+  // Reports
   panels: panelsRouter,
   shipping: shippingRouter,
   jobs: jobsRouter,
   packages: packageRouter,
   timeOut: timeOutRouter,
-  inspections: inspectionsRouter,
+  route: inspection_route_Router,
   quality: qualityRouter,
+
+  // Charts
   charts: chartsRouter,
 })
 

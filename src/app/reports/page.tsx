@@ -6,6 +6,7 @@ import {
   LayoutPanelLeft,
   type LucideIcon,
   Package,
+  RouteIcon,
   Truck,
 } from "lucide-react"
 import { Route } from "next"
@@ -109,6 +110,20 @@ export default function ModernReportsDashboard() {
         text: "text-rose-600 dark:text-rose-400",
         hoverBorder: "hover:border-rose-500/30",
         hoverShadow: "hover:shadow-rose-500/10",
+      },
+    },
+    {
+      id: "inspection routes",
+      title: "Panel routes",
+      description: "show panels route and last stage",
+      icon: RouteIcon,
+      href: "/reports/inspection-routes",
+
+      theme: {
+        bg: "bg-lime-50 dark:bg-emerald-950/30",
+        text: "text-lime-600 dark:text-emerald-400",
+        hoverBorder: "hover:border-lime-400/30",
+        hoverShadow: "hover:shadow-lime-400/20",
       },
     },
   ] as const satisfies CardObject[]
