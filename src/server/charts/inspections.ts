@@ -366,17 +366,18 @@ export const chartsRouter = router({
           ORDER BY date ASC
         `
 
+        // FIX 1: Updated type definition to expect 'date' instead of 'defect_day'
         const [rows] = await db.mes.query<
           (RowDataPacket & {
-            defect_day: Date | null
+            date: Date | string | null
             total_defects: number
           })[]
         >(sql, params)
 
         // --- Format Data ---
-        // Converts database rows cleanly. Groups by day.
+        // FIX 2: Map from 'row.date' instead of 'row.defect_day'
         return rows.map((row) => ({
-          date: row.defect_day,
+          date: row.date,
           count: Number(row.total_defects),
         }))
       } catch (error) {
