@@ -7,10 +7,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { trpc } from "@/lib/trpc/client"
 
-import { TotalInsectionChart } from "./DefectsLineChart"
-import { Total_Defects_Per_Type_Chart } from "./ProjectDefects"
-import { ChartBarHorizontal } from "./RowLineChart"
 import { ChartBarInteractive } from "./TimeChart"
+import { Total_Defects_Per_Type_Chart } from "./Total_Defects_Per_Type_Chart"
+import { Total_OK_NOK_Chart } from "./Total_OK_NOK_Chart"
+import { Total_inspections_per_project_Chart } from "./Total_inspections_per_project_Chart"
 
 type VisualizationProps = {
   children?: React.ReactNode
@@ -51,8 +51,8 @@ export default function Visualization(props: VisualizationProps) {
 
   // Individual Query 1: Gates
   const { data: totals_per_gate, isFetching: isFetching_per_gate } =
-    trpc.charts.get_total_inspections_per_gate.useQuery(
-      { from: appliedFrom, to: appliedTo },
+    trpc.charts.get_totals_inspections.useQuery(
+      { from: appliedFrom, to: appliedTo, groupBy: "gate" },
       { enabled: isRangeSelected }
     )
 
@@ -66,6 +66,18 @@ export default function Visualization(props: VisualizationProps) {
   // Individual Query 3: Top Stats
   const { data: statsData, isFetching: isFetching_stats } =
     trpc.charts.get_all_stats.useQuery(
+      { from: appliedFrom, to: appliedTo },
+      { enabled: isRangeSelected }
+    )
+
+  const { data: totals_per_project, isFetching: isFetching_per_project } =
+    trpc.charts.get_totals_inspections.useQuery(
+      { from: appliedFrom, to: appliedTo, groupBy: "project", limit: 6 },
+      { enabled: isRangeSelected }
+    )
+
+  const { data: totals_per_day, isFetching: isFetching_per_day } =
+    trpc.charts.get_total_defects_per_day.useQuery(
       { from: appliedFrom, to: appliedTo },
       { enabled: isRangeSelected }
     )
@@ -107,7 +119,7 @@ export default function Visualization(props: VisualizationProps) {
               value={tempFrom}
               max={todayStr}
               onChange={(e) => setTempFrom(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none dark:[color-scheme:dark]"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none dark:scheme-dark"
             />
             {!tempFrom && (
               <span className="absolute left-3 top-2.5 text-sm text-muted-foreground pointer-events-none">
@@ -124,7 +136,7 @@ export default function Visualization(props: VisualizationProps) {
               max={todayStr}
               min={tempFrom || undefined} // Prevents picking a 'To' date prior to the 'From' date
               onChange={(e) => setTempTo(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none dark:[color-scheme:dark]"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none dark:scheme-dark"
             />
             {!tempTo && (
               <span className="absolute left-3 top-2.5 text-sm text-muted-foreground pointer-events-none">
@@ -198,13 +210,19 @@ export default function Visualization(props: VisualizationProps) {
           </div>
 
           <div className="flex flex-col gap-4 pb-4">
-            <ChartBarInteractive />
+            <ChartBarInteractive
+              data={totals_per_day}
+              isLoading={isFetching_per_day}
+            />
             <div className="grid grid-cols-1 xl:grid-cols-3 w-full gap-4">
-              <TotalInsectionChart
+              <Total_OK_NOK_Chart
                 data={totals_per_gate}
                 isLoading={isFetching_per_gate}
               />
-              <ChartBarHorizontal />
+              <Total_inspections_per_project_Chart
+                data={totals_per_project}
+                isLoading={isFetching_per_project}
+              />
               <Total_Defects_Per_Type_Chart
                 data={totals_per_type}
                 isLoading={isFetching_per_type}

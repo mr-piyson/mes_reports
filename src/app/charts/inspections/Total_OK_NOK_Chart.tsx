@@ -29,11 +29,11 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function TotalInsectionChart({
+export function Total_OK_NOK_Chart({
   data,
   isLoading,
 }: {
-  data: { gate_name: string; OK: number; NOK: number }[] | undefined
+  data: any
   isLoading: boolean
 }) {
   // 2. Fetch data directly from your newly updated tRPC procedure
@@ -41,7 +41,7 @@ export function TotalInsectionChart({
   return (
     <Card className="flex-1">
       <CardHeader>
-        <CardTitle>Total Inspection Chart</CardTitle>
+        <CardTitle>Total Result by Quality Gate</CardTitle>
         <CardDescription>
           Breakdown of OK vs NOK across production areas
         </CardDescription>
