@@ -18,6 +18,7 @@ export type APIInspectionResult = RowDataPacket & {
   epicor_asm_part_no: string
   inspector: string
   factory: string
+  defect_type: string | null
 }
 
 export interface InspectionResult {
@@ -32,6 +33,7 @@ export interface InspectionResult {
   inspector: string
   epicor_asm_part_no: string | null
   image: string | null
+  defect_type: string | null
   // --- Add these optional fields for Gate 5 ---
   paint_batch_no?: string
   delta_e?: number
@@ -111,6 +113,7 @@ export const inspectionsRouter = router({
           "ir.inspector",
           "ir.factory",
           "d.image",
+          "dl.defect_type",
         ]
 
         if (gate === 5) {
@@ -133,6 +136,7 @@ export const inspectionsRouter = router({
             FROM quality.inspection_results ir
             LEFT JOIN quality.defects d ON ir.id = d.inspection_id
             LEFT JOIN label_app.ud31 u ON ir.panel_serial = u.key5
+            LEFT JOIN quality.defects_list dl on d.defect_type = dl.id 
             ${whereClause}
             ORDER BY ir.datetime DESC;
           `
@@ -168,6 +172,7 @@ export const inspectionsRouter = router({
             inspection_result: row.inspection_result === "OK",
             inspector: row.inspector,
             image: row.image,
+            defect_type: row.defect_type,
             epicor_asm_part_no: row.epicor_asm_part_no,
             // Additional fields for Gate 5
             ...(gate === 5 && {

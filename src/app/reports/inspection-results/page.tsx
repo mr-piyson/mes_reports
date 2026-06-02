@@ -219,6 +219,7 @@ export default function ReportPage() {
         cellRenderer: DateCellRenderer,
       },
       { field: "factory", width: 100 },
+      { field: "defect_type", width: 100 },
     ]
 
     return cols
