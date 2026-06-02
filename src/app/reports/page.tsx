@@ -42,6 +42,37 @@ type ReportCategory = {
 export default function ScalableReportsDashboard() {
   const reportCategories: ReportCategory[] = [
     {
+      categoryName: "Panel Tracking",
+      items: [
+        {
+          id: "panel",
+          title: "Panel Report",
+          description: "System panels & metrics",
+          icon: LayoutPanelLeft,
+          href: "/reports/panels" as Route,
+          theme: {
+            bg: "bg-blue-50 dark:bg-blue-950/30",
+            text: "text-blue-600 dark:text-blue-400",
+            hoverBorder: "hover:border-blue-500/30",
+            hoverShadow: "hover:shadow-blue-500/10",
+          },
+        },
+        {
+          id: "timeout",
+          title: "Time-outs",
+          description: "Downtimes & delays",
+          icon: Clock,
+          href: "/reports/time-out" as Route,
+          theme: {
+            bg: "bg-rose-50 dark:bg-rose-950/30",
+            text: "text-rose-600 dark:text-rose-400",
+            hoverBorder: "hover:border-rose-500/30",
+            hoverShadow: "hover:shadow-rose-500/10",
+          },
+        },
+      ],
+    },
+    {
       categoryName: "Logistics & Operations",
       items: [
         {
@@ -112,37 +143,6 @@ export default function ScalableReportsDashboard() {
             text: "text-lime-600 dark:text-emerald-400",
             hoverBorder: "hover:border-lime-400/30",
             hoverShadow: "hover:shadow-lime-400/20",
-          },
-        },
-      ],
-    },
-    {
-      categoryName: "System Health",
-      items: [
-        {
-          id: "panel",
-          title: "Panel Report",
-          description: "System panels & metrics",
-          icon: LayoutPanelLeft,
-          href: "/reports/panels" as Route,
-          theme: {
-            bg: "bg-blue-50 dark:bg-blue-950/30",
-            text: "text-blue-600 dark:text-blue-400",
-            hoverBorder: "hover:border-blue-500/30",
-            hoverShadow: "hover:shadow-blue-500/10",
-          },
-        },
-        {
-          id: "timeout",
-          title: "Time-outs",
-          description: "Downtimes & delays",
-          icon: Clock,
-          href: "/reports/time-out" as Route,
-          theme: {
-            bg: "bg-rose-50 dark:bg-rose-950/30",
-            text: "text-rose-600 dark:text-rose-400",
-            hoverBorder: "hover:border-rose-500/30",
-            hoverShadow: "hover:shadow-rose-500/10",
           },
         },
       ],
