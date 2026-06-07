@@ -51,7 +51,7 @@ export default function Visualization(props: VisualizationProps) {
 
   // Individual Query 1: Gates
   const { data: totals_per_gate, isFetching: isFetching_per_gate } =
-    trpc.charts.get_totals_inspections.useQuery(
+    trpc.charts.get_totals_defects.useQuery(
       { from: appliedFrom, to: appliedTo, groupBy: "gate" },
       { enabled: isRangeSelected }
     )
@@ -71,7 +71,7 @@ export default function Visualization(props: VisualizationProps) {
     )
 
   const { data: totals_per_project, isFetching: isFetching_per_project } =
-    trpc.charts.get_totals_inspections.useQuery(
+    trpc.charts.get_totals_defects.useQuery(
       { from: appliedFrom, to: appliedTo, groupBy: "project", limit: 6 },
       { enabled: isRangeSelected }
     )

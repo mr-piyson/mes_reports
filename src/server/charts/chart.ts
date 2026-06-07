@@ -33,7 +33,7 @@ const ALL_GATES = Object.keys(gateMap).map(Number)
 const placeholders = (arr: unknown[]) => arr.map(() => "?").join(",")
 
 export const chartsRouter = router({
-  get_totals_inspections: publicProcedure
+  get_totals_defects: publicProcedure
     .input(
       z.object({
         factory: z.string().default("F2 Rail"),
@@ -82,7 +82,7 @@ export const chartsRouter = router({
         conditions.push(`ir.gate IN (${placeholders(gatesToQuery)})`)
         params.push(...gatesToQuery)
 
-        const whereClause = `WHERE ${conditions.join(" AND ")}`
+        const whereClause = `${conditions.join(" AND ")}`
 
         // Ensure SQL injection safety for ORDER BY direction
         const orderDirection = order === "asc" ? "ASC" : "DESC"
@@ -96,11 +96,16 @@ export const chartsRouter = router({
           sql = `
             SELECT 
               ir.project,
-              COUNT(*) as count
+              -- 1. Total defects (rows where result is not OK)
+              SUM(CASE WHEN ir.inspection_result != 'OK' THEN 1 ELSE 0 END) as defect_count,
+              -- 2. Total raw inspections (every single check)
+              -- COUNT(*) as total_inspections,
+              -- 3. Total unique panels inspected
+              COUNT(DISTINCT ir.panel_serial) as total_panels_inspected
             FROM quality.inspection_results ir
-            ${whereClause}
+            WHERE ${whereClause}
             GROUP BY ir.project
-            ORDER BY count ${orderDirection}
+            ORDER BY defect_count ${orderDirection}
             ${limit ? "LIMIT ?" : ""}
           `
         } else {
@@ -113,7 +118,7 @@ export const chartsRouter = router({
               END AS result_category,
               COUNT(*) as count
             FROM quality.inspection_results ir
-            ${whereClause}
+            Where ${whereClause}
             GROUP BY ir.gate, result_category
             ORDER BY ir.gate ${orderDirection}
             ${limit ? "LIMIT ?" : ""}
@@ -132,7 +137,8 @@ export const chartsRouter = router({
         if (isProjectGroup) {
           return rows.map((row) => ({
             project: row.project || "Unassigned",
-            count: Number(row.count),
+            defect_count: Number(row.defect_count),
+            total_panels_inspected: Number(row.total_panels_inspected),
           }))
         }
 

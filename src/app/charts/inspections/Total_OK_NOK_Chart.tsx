@@ -3,13 +3,7 @@
 import { Loader2 } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   type ChartConfig,
   ChartContainer,
@@ -41,10 +35,7 @@ export function Total_OK_NOK_Chart({
   return (
     <Card className="flex-1">
       <CardHeader>
-        <CardTitle>Total Result by Quality Gate</CardTitle>
-        <CardDescription>
-          Breakdown of OK vs NOK across production areas
-        </CardDescription>
+        <CardTitle>Total Inspection per Gate</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (

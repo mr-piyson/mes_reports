@@ -9,7 +9,7 @@
  */
 import { t } from "@/lib/trpc/server"
 
-import { chartsRouter } from "./charts/inspections"
+import { chartsRouter } from "./charts/chart"
 import { inspectionsRouter } from "./reports/inspection-results"
 import { inspection_route_Router } from "./reports/inspection-routes"
 import { qualityRouter } from "./reports/inspections"
