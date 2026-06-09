@@ -2,15 +2,15 @@
 
 import { AlertCircle, Search } from "lucide-react"
 import { useQueryState } from "nuqs"
-import { useState } from "react"
+import { Suspense, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Total_OK_NOK_Chart } from "./Gate-Analytics-Chart"
+import { ChartBarInteractive } from "./Inspection-Analatics"
 import { Total_inspections_per_project_Chart } from "./Project-Analytics-Chart"
 import { SummaryCards } from "./SummaryCard"
-import { ChartBarInteractive } from "./Inspection-Analatics"
 import { Total_Defects_Per_Type_Chart } from "./Total_Defects_Per_Type_Chart"
 import { fromParam, gateParam, toParam } from "./params"
 
@@ -127,7 +127,7 @@ export default function Visualization() {
           </p>
         </div>
       ) : (
-        <>
+        <Suspense>
           {/* Component dependencies access context from URL states instantly */}
           <SummaryCards />
 
@@ -139,7 +139,7 @@ export default function Visualization() {
               <Total_Defects_Per_Type_Chart />
             </div>
           </div>
-        </>
+        </Suspense>
       )}
     </div>
   )
