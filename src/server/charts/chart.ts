@@ -29,9 +29,6 @@ const gateMap: Record<number, string> = {
 // All available gate IDs
 const ALL_GATES = Object.keys(gateMap).map(Number)
 
-// Helper to build placeholder string for IN clause
-const placeholders = (arr: unknown[]) => arr.map(() => "?").join(",")
-
 export const chartsRouter = router({
   get_totals_defects: publicProcedure
     .input(
@@ -39,8 +36,8 @@ export const chartsRouter = router({
         factory: z.string().default("F2 Rail"),
         from: z.date().optional().nullable(),
         to: z.date().optional().nullable(),
-        gate: z.number().int().min(0).default(0), // 0 = all gates, >0 = specific gate
-        limit: z.number().optional(),
+        gate: z.number().int().min(0).default(0),
+        limit: z.number().int().positive().optional(),
         order: z.enum(["asc", "desc"]).default("desc"),
         groupBy: z.enum(["gate", "project"]).default("gate"),
       })
@@ -49,136 +46,157 @@ export const chartsRouter = router({
       try {
         const { factory, from, to, gate, limit, order, groupBy } = input
 
-        // Determine which gates to query
-        const gatesToQuery = gate === 0 ? ALL_GATES : [gate]
-
-        // Validate that a specific gate exists in our map
+        // Validate gate
         if (gate !== 0 && !gateMap[gate]) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `Invalid gate ID: ${gate}. Valid gates are: ${Object.keys(gateMap).join(", ")}`,
+            message: `Invalid gate ID: ${gate}. Valid gates are: ${Object.keys(
+              gateMap
+            ).join(", ")}`,
           })
         }
 
-        // --- Build parameterized conditions ---
-        const conditions: string[] = []
-        const params: (string | Date | number)[] = []
+        const conditions: string[] = ["ir.factory = ?"]
+        const params: (string | Date | number)[] = [factory]
 
-        // Factory is required
-        conditions.push("ir.factory = ?")
-        params.push(factory)
-
-        // Date range
         if (from) {
           conditions.push("ir.datetime >= ?")
           params.push(from)
         }
+
         if (to) {
           conditions.push("ir.datetime <= ?")
           params.push(to)
         }
 
-        // Gate filter (using IN clause with our gates list)
-        conditions.push(`ir.gate IN (${placeholders(gatesToQuery)})`)
-        params.push(...gatesToQuery)
-
-        const whereClause = `${conditions.join(" AND ")}`
-
-        // Ensure SQL injection safety for ORDER BY direction
-        const orderDirection = order === "asc" ? "ASC" : "DESC"
-
-        // Variables to hold dynamic SQL strings
-        let sql = ""
-        const isProjectGroup = groupBy === "project"
-
-        // --- Execute conditional SQL based on 'groupBy' ---
-        if (isProjectGroup) {
-          sql = `
-            SELECT 
-              ir.project,
-              -- 1. Total defects (rows where result is not OK)
-              SUM(CASE WHEN ir.inspection_result != 'OK' THEN 1 ELSE 0 END) as defect_count,
-              -- 2. Total raw inspections (every single check)
-              -- COUNT(*) as total_inspections,
-              -- 3. Total unique panels inspected
-              COUNT(DISTINCT ir.panel_serial) as total_panels_inspected
-            FROM quality.inspection_results ir
-            WHERE ${whereClause}
-            GROUP BY ir.project
-            ORDER BY defect_count ${orderDirection}
-            ${limit ? "LIMIT ?" : ""}
-          `
-        } else {
-          sql = `
-            SELECT 
-              ir.gate,
-              CASE 
-                WHEN ir.inspection_result = 'OK' THEN 'OK'
-                ELSE 'NOK'
-              END AS result_category,
-              COUNT(*) as count
-            FROM quality.inspection_results ir
-            WHERE ${whereClause}
-            GROUP BY ir.gate, result_category
-            -- Custom sorting removed from here, handled in TS below
-            ${limit ? "LIMIT ?" : ""}
-          `
+        if (gate !== 0) {
+          conditions.push("ir.gate = ?")
+          params.push(gate)
         }
 
-        // Append limit param if it exists
-        if (limit) params.push(limit)
+        const whereClause = conditions.join(" AND ")
+        const isProjectGroup = groupBy === "project"
+        const orderDirection = order === "asc" ? "ASC" : "DESC"
 
-        // Run the query (loosely typing the return as we handle it conditionally)
-        const [rows] = await db.mes.query<RowDataPacket[]>(sql, params)
+        let sql: string
 
-        // --- Map-Reduce to Chart-Ready Format ---
+        if (isProjectGroup) {
+          sql = `
+          SELECT
+            ir.project,
+            SUM(
+              CASE
+                WHEN ir.inspection_result != 'OK' THEN 1
+                ELSE 0
+              END
+            ) AS defect_count,
+            COUNT(DISTINCT ir.panel_serial) AS total_panels_inspected
+          FROM quality.inspection_results ir
+          WHERE ${whereClause}
+          GROUP BY ir.project
+          ORDER BY defect_count ${orderDirection}
+          ${limit !== undefined ? "LIMIT ?" : ""}
+        `
+        } else {
+          sql = `
+          SELECT
+            ir.gate,
+            CASE
+              WHEN ir.inspection_result = 'OK' THEN 'OK'
+              ELSE 'NOK'
+            END AS result_category,
+            COUNT(*) AS count
+          FROM quality.inspection_results ir
+          WHERE ${whereClause}
+          GROUP BY ir.gate, result_category
+          ${limit !== undefined ? "LIMIT ?" : ""}
+        `
+        }
 
-        // 1. Format for Project Grouping
+        if (limit !== undefined) {
+          params.push(limit)
+        }
+
+        const [rows] = await db.mes.query<any[]>(sql, params)
+
+        // ==========================================
+        // Project View
+        // ==========================================
         if (isProjectGroup) {
           return rows.map((row) => ({
-            project: row.project || "Unassigned",
+            project: row.project ?? "Unassigned",
             defect_count: Number(row.defect_count),
             total_panels_inspected: Number(row.total_panels_inspected),
           }))
         }
 
-        // 2. Format for Gate Grouping (Default)
+        // ==========================================
+        // Gate View
+        // ==========================================
+
+        const gatesToQuery =
+          gate !== 0 ? [gate] : Object.keys(gateMap).map(Number)
+
         const formattedData: Record<
           number,
-          { gate_name: string; OK: number; NOK: number }
+          {
+            gate_name: string
+            OK: number
+            NOK: number
+            total: number
+            defect_rate: number
+          }
         > = {}
 
-        // Initialize empty placeholders so all requested gates are listed
-        gatesToQuery.forEach((gateId) => {
+        // Initialize gates
+        for (const gateId of gatesToQuery) {
           formattedData[gateId] = {
-            gate_name: gateMap[gateId] || `Gate ${gateId}`,
+            gate_name: gateMap[gateId] ?? `Gate ${gateId}`,
             OK: 0,
             NOK: 0,
+            total: 0,
+            defect_rate: 0,
           }
+        }
+
+        // Populate counts
+        for (const row of rows) {
+          const gateId = Number(row.gate)
+
+          if (!formattedData[gateId]) continue
+
+          formattedData[gateId][row.result_category as "OK" | "NOK"] = Number(
+            row.count
+          )
+        }
+
+        // Calculate totals and defect rates
+        Object.values(formattedData).forEach((gate) => {
+          gate.total = gate.OK + gate.NOK
+          gate.defect_rate =
+            gate.total > 0
+              ? Number(((gate.NOK / gate.total) * 100).toFixed(2))
+              : 0
         })
 
-        // Reduce database rows directly into our map tracker
-        rows.forEach((row) => {
-          if (formattedData[row.gate]) {
-            formattedData[row.gate][row.result_category as "OK" | "NOK"] =
-              Number(row.count)
-          }
-        })
-
-        // 3. Define the desired order sequence and map into a final sorted array
         const customOrder = [1, 2, 10, 3, 11, 12, 5, 6]
 
-        return customOrder
-          .filter((gateId) => formattedData[gateId] !== undefined) // Keeps only existing keys
+        const orderedGates =
+          order === "asc" ? customOrder : [...customOrder].reverse()
+
+        return orderedGates
+          .filter((gateId) => formattedData[gateId])
           .map((gateId) => ({
             gate: gateId,
             ...formattedData[gateId],
           }))
-        // Return a clean array
-        return Object.values(formattedData)
       } catch (error) {
-        console.error("tRPC Error (get_total_inspections_per_gate):", error)
-        if (error instanceof TRPCError) throw error
+        console.error("tRPC Error (get_totals_defects):", error)
+
+        if (error instanceof TRPCError) {
+          throw error
+        }
+
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch inspection results",
@@ -192,11 +210,12 @@ export const chartsRouter = router({
         from: z.date().optional().nullable(),
         to: z.date().optional().nullable(),
         limit: z.number().optional(),
+        gate: z.number().optional().default(0),
       })
     )
     .query(async ({ input }) => {
       try {
-        const { from, to, limit } = input
+        const { from, to, limit, gate } = input
 
         // --- Build parameterized query ---
         const conditions: string[] = []
@@ -212,6 +231,11 @@ export const chartsRouter = router({
           params.push(to)
         }
 
+        if (gate !== 0) {
+          conditions.push("ir.gate = ?")
+          params.push(gate)
+        }
+
         // Only append WHERE clause if we actually have date filters passed
         const whereConditions =
           conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
@@ -224,6 +248,7 @@ export const chartsRouter = router({
             COUNT(d.id) AS defect_count
           FROM quality.defects d 
           LEFT JOIN quality.defects_list dl ON d.defect_type = dl.id
+          LEFT JOIN quality.inspection_results ir ON d.inspection_id = ir.id
           ${whereConditions}
           GROUP BY dl.id, dl.defect_type
           ORDER BY defect_count DESC 

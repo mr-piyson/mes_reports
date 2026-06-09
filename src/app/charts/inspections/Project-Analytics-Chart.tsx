@@ -46,6 +46,7 @@ export function Total_inspections_per_project_Chart() {
     to: appliedTo,
     groupBy: "project",
     limit: 6,
+    gate: Number(gate),
   })
 
   return (

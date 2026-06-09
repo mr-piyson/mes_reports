@@ -40,6 +40,7 @@ export function Total_OK_NOK_Chart() {
   const { data, isLoading } = trpc.charts.get_totals_defects.useQuery({
     from: appliedFrom,
     to: appliedTo,
+    gate: Number(gate),
   })
 
   return (

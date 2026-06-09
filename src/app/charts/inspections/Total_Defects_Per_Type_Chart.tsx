@@ -40,6 +40,7 @@ export function Total_Defects_Per_Type_Chart() {
     from: appliedFrom,
     to: appliedTo,
     limit: 6,
+    gate: Number(gate),
   })
 
   return (

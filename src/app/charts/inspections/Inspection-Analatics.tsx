@@ -5,7 +5,7 @@ import { useQueryState } from "nuqs"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
 import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   type ChartConfig,
   ChartContainer,

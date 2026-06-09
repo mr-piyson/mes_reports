@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Total_OK_NOK_Chart } from "./Gate-Analytics-Chart"
 import { Total_inspections_per_project_Chart } from "./Project-Analytics-Chart"
 import { SummaryCards } from "./SummaryCard"
-import { ChartBarInteractive } from "./TimeChart"
+import { ChartBarInteractive } from "./Inspection-Analatics"
 import { Total_Defects_Per_Type_Chart } from "./Total_Defects_Per_Type_Chart"
 import { fromParam, gateParam, toParam } from "./params"
 
