@@ -7,12 +7,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { SummaryCards } from "./SummaryCard"
-// Sub-components reading from the URL dynamically
-import { ChartBarInteractive } from "./TimeChart"
-import { Total_Defects_Per_Type_Chart } from "./Total_Defects_Per_Type_Chart"
 import { Total_OK_NOK_Chart } from "./Gate-Analytics-Chart"
 import { Total_inspections_per_project_Chart } from "./Project-Analytics-Chart"
+import { SummaryCards } from "./SummaryCard"
+import { ChartBarInteractive } from "./TimeChart"
+import { Total_Defects_Per_Type_Chart } from "./Total_Defects_Per_Type_Chart"
 import { fromParam, gateParam, toParam } from "./params"
 
 const GATE_OPTIONS = [
@@ -46,7 +45,6 @@ export default function Visualization() {
 
   const handleSearch = async () => {
     if (tempFrom && tempTo) {
-      // Transition states into URL search params concurrently
       await Promise.all([
         setAppliedFrom(new Date(tempFrom)),
         setAppliedTo(new Date(tempTo)),
@@ -104,12 +102,12 @@ export default function Visualization() {
         </div>
 
         <Tabs value={gate} onValueChange={setGate} className="w-full">
-          <TabsList className="w-full bg-muted/50 h-auto flex-wrap justify-start md:justify-center">
+          <TabsList className="w-full h-auto flex-wrap justify-start md:justify-center">
             {GATE_OPTIONS.map((opt) => (
               <TabsTrigger
                 key={opt.value}
                 value={opt.value}
-                className="flex-1 min-w-20"
+                className="flex-1 min-w-20 data-[state=active]:bg-primary data-[state=active]:text-white"
               >
                 {opt.label}
               </TabsTrigger>

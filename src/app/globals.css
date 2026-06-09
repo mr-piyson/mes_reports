@@ -13,7 +13,7 @@
 :root {
   --background: #ffffff;
   --foreground: #17141d;
-  --card: #f5f5f5;
+  --card: #e7e7e7;
   --card-foreground: #17141d;
   --popover: #ffffff;
   --popover-foreground: #17141d;
@@ -37,7 +37,7 @@
   --input: #dddddd;
   --ring: #aba8c1;
   --chart-1: #f6497d;
-  --chart-2: #509f05;
+  --chart-2: #5eba00;
   --chart-3: #465caa;
   --chart-4: #ffa02c;
   --chart-5: #43a4ff;
