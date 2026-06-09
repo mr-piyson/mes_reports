@@ -1,15 +1,24 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
+import { useQueryState } from "nuqs"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { trpc } from "@/lib/trpc/client"
 
 // 1. Map config keys to match our API payload structure
 const chartConfig = {
@@ -23,19 +32,21 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function Total_OK_NOK_Chart({
-  data,
-  isLoading,
-}: {
-  data: any
-  isLoading: boolean
-}) {
-  // 2. Fetch data directly from your newly updated tRPC procedure
+export function Total_OK_NOK_Chart() {
+  const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
+  const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
+  const [gate, setGate] = useQueryState("gate", gateParam)
+
+  const { data, isLoading } = trpc.charts.get_totals_defects.useQuery({
+    from: appliedFrom,
+    to: appliedTo,
+  })
 
   return (
     <Card className="flex-1">
       <CardHeader>
-        <CardTitle>Total Inspection per Gate</CardTitle>
+        <CardTitle>Gates Analytics</CardTitle>
+        <CardDescription>Total inspection and defects per gate</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (

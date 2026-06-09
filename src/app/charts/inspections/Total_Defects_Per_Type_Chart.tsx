@@ -1,11 +1,14 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
+import { useQueryState } from "nuqs"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
+import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -16,6 +19,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { trpc } from "@/lib/trpc/client"
 
 const chartConfig = {
   defect_count: {
@@ -27,17 +31,22 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function Total_Defects_Per_Type_Chart({
-  data,
-  isLoading,
-}: {
-  data: any
-  isLoading: boolean
-}) {
+export function Total_Defects_Per_Type_Chart() {
+  const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
+  const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
+  const [gate, setGate] = useQueryState("gate", gateParam)
+
+  const { data, isLoading } = trpc.charts.get_defect_counts_by_type.useQuery({
+    from: appliedFrom,
+    to: appliedTo,
+    limit: 6,
+  })
+
   return (
     <Card className="flex-1">
       <CardHeader>
-        <CardTitle>Total Defects Per Type</CardTitle>
+        <CardTitle>Defect Analytics</CardTitle>
+        <CardDescription>Total defects of each defect type </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (

@@ -1,6 +1,7 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
+import { useQueryState } from "nuqs"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
 import {
@@ -19,6 +20,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { trpc } from "@/lib/trpc/client"
+
+import { fromParam, gateParam, toParam } from "./params"
 
 // Updated chart configuration matching your query fields and shadcn UI palette styles
 const chartConfig = {
@@ -32,13 +36,18 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function Total_inspections_per_project_Chart({
-  data,
-  isLoading,
-}: {
-  data: any[] | undefined
-  isLoading: boolean
-}) {
+export function Total_inspections_per_project_Chart() {
+  const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
+  const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
+  const [gate, setGate] = useQueryState("gate", gateParam)
+
+  const { data, isLoading } = trpc.charts.get_totals_defects.useQuery({
+    from: appliedFrom,
+    to: appliedTo,
+    groupBy: "project",
+    limit: 6,
+  })
+
   return (
     <Card>
       <CardHeader>

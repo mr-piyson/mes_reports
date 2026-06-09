@@ -1,8 +1,10 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
+import { useQueryState } from "nuqs"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
+import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   type ChartConfig,
@@ -10,6 +12,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { trpc } from "@/lib/trpc/client"
 
 export const description = "Daily Defect Analytics"
 
@@ -27,13 +30,16 @@ type DefectData = {
   count: number
 }
 
-export function ChartBarInteractive({
-  data,
-  isLoading,
-}: {
-  data?: DefectData[]
-  isLoading?: boolean
-}) {
+export function ChartBarInteractive() {
+  const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
+  const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
+  const [gate, setGate] = useQueryState("gate", gateParam)
+
+  const { data, isLoading } = trpc.charts.get_total_defects_per_day.useQuery({
+    from: appliedFrom,
+    to: appliedTo,
+  })
+
   return (
     <Card className="col-span-3 max-h-80 px-2 sm:p-6">
       <CardContent>
