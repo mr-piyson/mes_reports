@@ -38,6 +38,7 @@ export function ChartBarInteractive() {
   const { data, isLoading } = trpc.charts.get_total_defects_per_day.useQuery({
     from: appliedFrom,
     to: appliedTo,
+    gate: Number(gate),
   })
 
   return (

@@ -371,11 +371,12 @@ export const chartsRouter = router({
       z.object({
         from: z.date().optional().nullable(),
         to: z.date().optional().nullable(),
+        gate: z.number().optional(),
       })
     )
     .query(async ({ input }) => {
       try {
-        const { from, to } = input
+        const { from, to, gate } = input
 
         // --- Build parameterized query ---
         const conditions: string[] = []
@@ -389,6 +390,11 @@ export const chartsRouter = router({
         if (to) {
           conditions.push("d.datetime_in <= ?")
           params.push(to)
+        }
+
+        if (gate && gate !== 0) {
+          conditions.push("ir.gate = ?")
+          params.push(gate)
         }
 
         // Only append WHERE clause if we actually have date filters passed
