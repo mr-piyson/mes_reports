@@ -5,25 +5,25 @@ import { z } from "zod"
 import db from "@/lib/database"
 import { publicProcedure, router } from "@/lib/trpc/server"
 
+// 15: "Paint Prep",
+// 16: "Wrapping",
+// 17: "Packing",
+// 18: "Mixing",
+// 19: "Casting",
+// 20: "Pullout Test",
+// 21: "Curing",
+// 22: "After Trimming",
+
 // Mapping of gate IDs to display names
 const gateMap: Record<number, string> = {
-  2: "Gelcoating",
   1: "Mold",
-  3: "Trimming",
-  4: "Finishing",
-  5: "Painting",
-  6: "Final",
+  2: "Gelcoating",
   10: "Demolding",
+  3: "Trimming",
   11: "Drilling",
   12: "Bonding",
-  // 15: "Paint Prep",
-  // 16: "Wrapping",
-  // 17: "Packing",
-  // 18: "Mixing",
-  // 19: "Casting",
-  // 20: "Pullout Test",
-  // 21: "Curing",
-  // 22: "After Trimming",
+  5: "Painting",
+  6: "Final",
 }
 
 // All available gate IDs
@@ -118,9 +118,9 @@ export const chartsRouter = router({
               END AS result_category,
               COUNT(*) as count
             FROM quality.inspection_results ir
-            Where ${whereClause}
+            WHERE ${whereClause}
             GROUP BY ir.gate, result_category
-            ORDER BY ir.gate ${orderDirection}
+            -- Custom sorting removed from here, handled in TS below
             ${limit ? "LIMIT ?" : ""}
           `
         }
@@ -165,6 +165,15 @@ export const chartsRouter = router({
           }
         })
 
+        // 3. Define the desired order sequence and map into a final sorted array
+        const customOrder = [1, 2, 10, 3, 11, 12, 5, 6]
+
+        return customOrder
+          .filter((gateId) => formattedData[gateId] !== undefined) // Keeps only existing keys
+          .map((gateId) => ({
+            gate: gateId,
+            ...formattedData[gateId],
+          }))
         // Return a clean array
         return Object.values(formattedData)
       } catch (error) {

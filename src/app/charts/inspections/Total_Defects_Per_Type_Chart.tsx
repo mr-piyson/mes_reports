@@ -6,7 +6,6 @@ import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -17,14 +16,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { trpc } from "@/lib/trpc/client"
-
-interface TotalDefectsChartProps extends React.ComponentProps<typeof Card> {}
 
 const chartConfig = {
   defect_count: {
     label: "Defects",
-    color: "var(--chart-2)",
+    color: "var(--chart-1)",
   },
   label: {
     color: "var(--background)",
@@ -84,7 +80,7 @@ export function Total_Defects_Per_Type_Chart({
                   />
                 }
               />
-              <Bar dataKey="defect_count" fill="var(--chart-2)" radius={4}>
+              <Bar dataKey="defect_count" fill="var(--chart-1)" radius={4}>
                 {/* Inside Label: Displays the name of the defect */}
                 <LabelList
                   dataKey="defect_type"

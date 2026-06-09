@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
 import {
   Card,
@@ -85,18 +85,35 @@ export function Total_inspections_per_project_Chart({
               <ChartLegend content={<ChartLegendContent />} />
 
               {/* Bar 1: Total Panels Inspected (uses modern corner radius matching your layout) */}
+
               <Bar
                 dataKey="total_panels_inspected"
                 fill="var(--color-total_panels_inspected)"
                 radius={[0, 4, 4, 0]}
-              />
+              >
+                <LabelList
+                  dataKey="total_panels_inspected"
+                  position="right"
+                  offset={8}
+                  className="fill-foreground"
+                  fontSize={12}
+                />
+              </Bar>
 
               {/* Bar 2: Defect Count */}
               <Bar
                 dataKey="defect_count"
                 fill="var(--color-defect_count)"
                 radius={[0, 4, 4, 0]}
-              />
+              >
+                <LabelList
+                  dataKey="defect_count"
+                  position="right"
+                  offset={8}
+                  className="fill-foreground"
+                  fontSize={12}
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         )}
