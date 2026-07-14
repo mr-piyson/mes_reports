@@ -5,20 +5,28 @@ import {
   type ColDef,
   CsvExportModule,
   type GridApi,
-  GridOptions,
   type GridReadyEvent,
   ModuleRegistry,
 } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
 import {
+  AlertCircle,
+  BarChart3,
   ChevronDownIcon,
   ChevronRightIcon,
   FileSpreadsheet,
   Search,
+  TableIcon,
 } from "lucide-react"
-import Image from "next/image"
-import { useCallback, useMemo, useState } from "react"
+import { useQueryState } from "nuqs"
+import { Suspense, useCallback, useMemo, useState } from "react"
 
+import { Total_OK_NOK_Chart } from "@/app/charts/inspections/Gate-Analytics-Chart"
+import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import { ChartBarInteractive } from "@/app/charts/inspections/Inspection-Analatics"
+import { Total_inspections_per_project_Chart } from "@/app/charts/inspections/Project-Analytics-Chart"
+import { SummaryCards } from "@/app/charts/inspections/SummaryCard"
+import { Total_Defects_Per_Type_Chart } from "@/app/charts/inspections/Total_Defects_Per_Type_Chart"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -58,18 +66,30 @@ const GATE_OPTIONS = [
   { value: "6", label: "Final" },
 ]
 
+type ViewMode = "table" | "analytics"
+
 export default function ReportPage() {
   const theme = useTableTheme()
 
-  // Grid State
-  const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(null)
-  const [gate, setGate] = useState<string>("0")
+  // Shared state via nuqs — works for both table query and chart components
+  const [appliedFrom, setAppliedFrom] = useQueryState<Date>(
+    "from",
+    fromParam
+  )
+  const [appliedTo, setAppliedTo] = useQueryState<Date>("to", toParam)
+  const [gate, setGate] = useQueryState("gate", gateParam)
 
-  // Date State with proper types
-  const [from, setFrom] = useState<Date | undefined>()
-  const [to, setTo] = useState<Date | undefined>()
+  // View toggle
+  const [activeView, setActiveView] = useState<ViewMode>("table")
 
-  // tRPC Query - Mapping input to ensure dates are valid before sending
+  // Grid state
+  const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(
+    null
+  )
+
+  const isRangeSelected = !!appliedFrom && !!appliedTo
+
+  // Table query — only fetches when table view is active and dates are set
   const {
     data: tableData,
     isFetching,
@@ -78,16 +98,16 @@ export default function ReportPage() {
     refetch,
   } = trpc.inspections.getResults.useQuery(
     {
-      from: from,
-      to: to,
+      from: appliedFrom ?? undefined,
+      to: appliedTo ?? undefined,
       gate: gate ? Number(gate) : undefined,
     },
     {
-      enabled: !!from && !!to,
+      enabled: isRangeSelected && activeView === "table",
     }
   )
 
-  // Calculations based on fetched data
+  // Metrics from table data
   const metrics = useMemo(() => {
     const data = tableData || []
     const total = data.length
@@ -96,26 +116,7 @@ export default function ReportPage() {
     return { total, percentage }
   }, [tableData])
 
-  const defaultColDef = useMemo<ColDef>(
-    () => ({
-      // --- FIXED WIDTH & SCROLLING ---
-      width: 180, // Default width for all columns
-      suppressSizeToFit: true, // Crucial: Stops the grid from squishing columns to fit screen
-      resizable: false, // Optional: Set to true if you want users to manual resize
-
-      // --- DISABLE DRAGGING ---
-      suppressMovable: true, // Prevents individual columns from being dragged
-
-      // --- STANDARD FEATURES ---
-      sortable: true,
-      filter: true,
-      floatingFilter: true,
-      // flex: 1,              // NEVER include flex if you want horizontal scrolling
-    }),
-    []
-  )
-
-  // 2. The Column Definitions (Now much cleaner)
+  // Column definitions
   const columnDefs = useMemo<ColDef<InspectionResult>[]>(() => {
     const cols: ColDef<InspectionResult>[] = [
       {
@@ -138,7 +139,6 @@ export default function ReportPage() {
         minWidth: 280,
       },
       { field: "epicor_asm_part_no", headerName: "ASM Part No" },
-
       {
         field: "image",
         headerName: "Defect Image",
@@ -148,12 +148,17 @@ export default function ReportPage() {
           return (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="link" className="p-0 h-auto" disabled={!value}>
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  disabled={!value}
+                >
                   {!value ? (
                     "-"
                   ) : (
                     <span className="flex flex-row justify-center items-center">
-                      View Image <ChevronRightIcon className="ml-2 size-4" />
+                      View Image{" "}
+                      <ChevronRightIcon className="ml-2 size-4" />
                     </span>
                   )}
                 </Button>
@@ -176,11 +181,13 @@ export default function ReportPage() {
           )
         },
       },
-
-      // --- FIX 1: gate is a string ("5"), not a number (5) ---
       ...(gate === "5"
         ? ([
-            { field: "paint_batch_no", headerName: "Batch No", width: 120 },
+            {
+              field: "paint_batch_no",
+              headerName: "Batch No",
+              width: 120,
+            },
             {
               field: "delta_e",
               headerName: "ΔE",
@@ -209,7 +216,7 @@ export default function ReportPage() {
                 { field: "delta_b", headerName: "Δb", width: 80 },
               ],
             },
-          ] as ColDef<InspectionResult>[]) // FIX 2: Cast to bypass strict NestedFieldPaths
+          ] as ColDef<InspectionResult>[])
         : []),
       { field: "project", flex: 1, minWidth: 250 },
       { field: "gate", width: 120 },
@@ -221,11 +228,22 @@ export default function ReportPage() {
       { field: "factory", width: 100 },
       { field: "defect_type", width: 100 },
     ]
-
     return cols
   }, [gate])
 
-  // Actions
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      width: 180,
+      suppressSizeToFit: true,
+      resizable: false,
+      suppressMovable: true,
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+    }),
+    []
+  )
+
   const onGridReady = (params: GridReadyEvent<InspectionResult>) =>
     setGridApi(params.api)
 
@@ -248,20 +266,23 @@ export default function ReportPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Controls */}
       <div className="p-4 border-b space-y-4 bg-card">
         <div className="flex flex-wrap items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-50 justify-between">
-                {from ? from.toLocaleDateString() : "From Date"}
+                {appliedFrom
+                  ? appliedFrom.toLocaleDateString()
+                  : "From Date"}
                 <ChevronDownIcon className="ml-2 size-4 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={from}
-                onSelect={setFrom}
+                selected={appliedFrom ?? undefined}
+                onSelect={(d) => setAppliedFrom(d ?? null)}
                 disabled={(d) => d > new Date()}
                 initialFocus
               />
@@ -271,16 +292,21 @@ export default function ReportPage() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-50 justify-between">
-                {to ? to.toLocaleDateString() : "To Date"}
+                {appliedTo
+                  ? appliedTo.toLocaleDateString()
+                  : "To Date"}
                 <ChevronDownIcon className="ml-2 size-4 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={to}
-                onSelect={setTo}
-                disabled={(d) => d > new Date() || (from ? d < from : false)}
+                selected={appliedTo ?? undefined}
+                onSelect={(d) => setAppliedTo(d ?? null)}
+                disabled={(d) =>
+                  d > new Date() ||
+                  (appliedFrom ? d < appliedFrom : false)
+                }
                 initialFocus
               />
             </PopoverContent>
@@ -288,7 +314,7 @@ export default function ReportPage() {
 
           <Button
             onClick={() => refetch()}
-            disabled={isFetching || !from || !to}
+            disabled={isFetching || !isRangeSelected}
           >
             <Search className="mr-2 size-4" />
             {isFetching ? "Searching..." : "Search"}
@@ -297,7 +323,11 @@ export default function ReportPage() {
           <Button
             variant="outline"
             onClick={exportRows}
-            disabled={!tableData || tableData.length === 0}
+            disabled={
+              activeView !== "table" ||
+              !tableData ||
+              tableData.length === 0
+            }
           >
             <FileSpreadsheet className="mr-2 size-4" />
             Export CSV
@@ -316,10 +346,15 @@ export default function ReportPage() {
           </div>
         </div>
 
+        {/* Gate filter tabs */}
         <Tabs value={gate} onValueChange={setGate} className="w-full">
           <TabsList className="w-full bg-muted/50">
             {GATE_OPTIONS.map((opt) => (
-              <TabsTrigger key={opt.value} value={opt.value} className="flex-1">
+              <TabsTrigger
+                key={opt.value}
+                value={opt.value}
+                className="flex-1"
+              >
                 {opt.label}
               </TabsTrigger>
             ))}
@@ -327,18 +362,69 @@ export default function ReportPage() {
         </Tabs>
       </div>
 
-      <div className="flex-1 overflow-hidden relative">
-        <div className="absolute inset-0">
-          <AgGridReact
-            rowData={tableData}
-            columnDefs={columnDefs}
-            onGridReady={onGridReady}
-            theme={theme}
-            loading={isFetching}
-            defaultColDef={defaultColDef}
-          />
-        </div>
+      {/* View switcher tabs */}
+      <div className="px-4 pt-2 bg-card border-b">
+        <Tabs
+          value={activeView}
+          onValueChange={(v) => setActiveView(v as ViewMode)}
+        >
+          <TabsList className="h-8">
+            <TabsTrigger value="table" className="gap-1.5 text-xs px-3 h-6">
+              <TableIcon className="size-3" />
+              Table
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5 text-xs px-3 h-6">
+              <BarChart3 className="size-3" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto">
+        {!isRangeSelected ? (
+          <EmptyState />
+        ) : activeView === "table" ? (
+          <div className="h-full relative">
+            <div className="absolute inset-0">
+              <AgGridReact
+                rowData={tableData}
+                columnDefs={columnDefs}
+                onGridReady={onGridReady}
+                theme={theme}
+                loading={isFetching}
+                defaultColDef={defaultColDef}
+              />
+            </div>
+          </div>
+        ) : (
+          <Suspense>
+            <div className="p-4 space-y-4">
+              <SummaryCards />
+              <ChartBarInteractive />
+              <div className="grid grid-cols-1 xl:grid-cols-3 w-full gap-4">
+                <Total_OK_NOK_Chart />
+                <Total_inspections_per_project_Chart />
+                <Total_Defects_Per_Type_Chart />
+              </div>
+            </div>
+          </Suspense>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-muted-foreground border-2 border-dashed rounded-xl m-4 p-12">
+      <AlertCircle className="size-8 mb-4 opacity-50" />
+      <h3 className="text-lg font-medium">No Date Range Selected</h3>
+      <p className="text-sm">
+        Please select a &quot;From&quot; and &quot;To&quot; date to view
+        data.
+      </p>
     </div>
   )
 }

@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+
 import TrpcProvider from "@/lib/trpc/Provider"
 
 type ReportLayoutProps = {
@@ -5,5 +7,9 @@ type ReportLayoutProps = {
 }
 
 export default function ReportLayout(props: ReportLayoutProps) {
-  return <main className="h-screen">{props.children}</main>
+  return (
+    <main className="h-screen">
+      <Suspense>{props.children}</Suspense>
+    </main>
+  )
 }

@@ -60,12 +60,12 @@ export const chartsRouter = router({
         const params: (string | Date | number)[] = [factory]
 
         if (from) {
-          conditions.push("ir.datetime >= ?")
+          conditions.push("ir.date >= ?")
           params.push(from)
         }
 
         if (to) {
-          conditions.push("ir.datetime <= ?")
+          conditions.push("ir.date <= ?")
           params.push(to)
         }
 
@@ -221,13 +221,13 @@ export const chartsRouter = router({
         const conditions: string[] = []
         const params: (Date | string | number)[] = []
 
-        // Optional date range filtering for datetime_in
+        // Date range — use ir.date to match report page filter
         if (from) {
-          conditions.push("d.datetime_in >= ?")
+          conditions.push("ir.date >= ?")
           params.push(from)
         }
         if (to) {
-          conditions.push("d.datetime_in <= ?")
+          conditions.push("ir.date <= ?")
           params.push(to)
         }
 
@@ -243,15 +243,15 @@ export const chartsRouter = router({
         limit ? params.push(limit) : undefined
 
         const sql = `
-          SELECT 
+          SELECT
             dl.defect_type,
             COUNT(d.id) AS defect_count
-          FROM quality.defects d 
+          FROM quality.defects d
           LEFT JOIN quality.defects_list dl ON d.defect_type = dl.id
           LEFT JOIN quality.inspection_results ir ON d.inspection_id = ir.id
           ${whereConditions}
           GROUP BY dl.id, dl.defect_type
-          ORDER BY defect_count DESC 
+          ORDER BY defect_count DESC
           ${limit ? `limit ?` : ""}
         `
 
@@ -293,34 +293,44 @@ export const chartsRouter = router({
         const conditions: string[] = []
         const params: (Date | string | number)[] = []
 
-        // Date range
+        // Date range — use ir.date (DATE column) to include full day,
+        // matching the report page filter. ir.datetime would exclude
+        // records after midnight on the `to` date.
         if (from) {
-          conditions.push("ir.datetime >= ?")
+          conditions.push("ir.date >= ?")
           params.push(from)
         }
         if (to) {
-          conditions.push("ir.datetime <= ?")
+          conditions.push("ir.date <= ?")
           params.push(to)
         }
 
-        // FIX: Only generate WHERE clause if conditions exist to prevent SQL syntax breaks
         const whereClause =
           conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
 
         const sql = `
-          SELECT 
-            COUNT(DISTINCT ir.id) AS total_inspections,
-            COUNT(DISTINCT ir.panel_serial) AS total_panels_inspected,
-            COUNT(DISTINCT CASE WHEN ir.inspection_result != 'OK' THEN ir.panel_serial END) AS total_defect_panels,
-            COUNT(d.id) AS total_defects,
+          SELECT
+            COUNT(*) AS total_inspections,
+            COUNT(DISTINCT panel_serial) AS total_panels_inspected,
+            COUNT(DISTINCT CASE WHEN inspection_result != 'OK' THEN panel_serial END) AS total_defect_panels,
+            defect_count AS total_defects,
             ROUND(
-                (COUNT(DISTINCT CASE WHEN ir.inspection_result != 'OK' THEN ir.panel_serial END) * 100.0) / 
-                NULLIF(COUNT(DISTINCT ir.panel_serial), 0), 
+                (COUNT(DISTINCT CASE WHEN inspection_result != 'OK' THEN panel_serial END) * 100.0) /
+                NULLIF(COUNT(DISTINCT panel_serial), 0),
                 2
             ) AS defect_panel_percentage
-          FROM quality.inspection_results ir 
-          LEFT JOIN quality.defects d ON ir.id = d.inspection_id
-          ${whereClause}
+          FROM (
+            SELECT
+              ir.id,
+              ir.panel_serial,
+              ir.inspection_result,
+              ir.gate,
+              ir.date,
+              (SELECT COUNT(*) FROM quality.defects d WHERE d.inspection_id = ir.id) AS defect_count
+            FROM quality.inspection_results ir
+            ${whereClause}
+            GROUP BY ir.panel_serial, ir.gate
+          ) AS deduped
         `
 
         // Strongly type the expected single row output
@@ -382,13 +392,13 @@ export const chartsRouter = router({
         const conditions: string[] = []
         const params: (Date | string | number)[] = []
 
-        // Date range for datetime_in
+        // Date range — use ir.date to match report page filter
         if (from) {
-          conditions.push("d.datetime_in >= ?")
+          conditions.push("ir.date >= ?")
           params.push(from)
         }
         if (to) {
-          conditions.push("d.datetime_in <= ?")
+          conditions.push("ir.date <= ?")
           params.push(to)
         }
 
@@ -402,10 +412,10 @@ export const chartsRouter = router({
           conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
 
         const sql = `
-          SELECT 
+          SELECT
             DATE(d.datetime_in) AS date,
             COUNT(d.id) AS total_defects
-          FROM quality.defects d 
+          FROM quality.defects d
           LEFT JOIN quality.inspection_results ir ON d.inspection_id = ir.id
           ${whereConditions}
           GROUP BY date
