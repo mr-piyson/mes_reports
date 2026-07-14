@@ -58,3 +58,7 @@ src/
 - `next.config.ts` allows dev origins at `172.18.1.140:4000` and `localhost:4000`
 - Remote images allowed from `iss.bfginternational.com` and `intranet.bfginternational.com:88`
 - `bun run update` runs `sudo systemctl restart mes-reports` — requires sudo access on deploy target
+- MySQL pool uses `dateStrings: true` and timezone `+03:00` — dates arrive as strings, not JS Date objects. Query inputs expecting `z.date()` need explicit conversion.
+- `src/server/reports/inspection-routes.ts` creates its own tRPC instance via `initTRPC.create()` instead of importing from `@/lib/trpc/server` — it lacks the superjson transformer and db context. Do not copy this pattern.
+- Adding shadcn/ui components: `bunx shadcn@latest add <component>` (style is new-york, configured in `components.json`)
+- Tailwind CSS 4 uses `@import "tailwindcss"` in `globals.css`, not the v3 `@tailwind` directives
