@@ -19,7 +19,7 @@ import {
   TableIcon,
 } from "lucide-react"
 import { useQueryState } from "nuqs"
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useMemo, useState } from "react"
 
 import { Total_OK_NOK_Chart } from "@/app/charts/inspections/Gate-Analytics-Chart"
 import { ChartBarInteractive } from "@/app/charts/inspections/Inspection-Analatics"
@@ -424,7 +424,7 @@ export default function ReportPage() {
         {!isRangeSelected ? (
           <EmptyState />
         ) : activeView === "table" ? (
-          <div className="h-full">
+          <div className="h-full flex flex-col">
             <AgGridReact
               rowData={tableData}
               columnDefs={columnDefs}
@@ -432,10 +432,10 @@ export default function ReportPage() {
               theme={theme}
               loading={isFetching}
               defaultColDef={defaultColDef}
-              components={{
-                TotalInspectionsStatusBar,
-              }}
             />
+            <div className="text-xs text-muted-foreground px-4 py-2 border-t bg-muted/30 shrink-0">
+              Total Inspections: {tableData?.length ?? 0}
+            </div>
           </div>
         ) : (
           <Suspense>
@@ -463,28 +463,6 @@ function EmptyState() {
       <p className="text-xs">
         Select &quot;From&quot; and &quot;To&quot; dates to view data.
       </p>
-    </div>
-  )
-}
-
-const TotalInspectionsStatusBar: React.FC<{ api: GridApi }> = ({ api }) => {
-  const [total, setTotal] = useState(0)
-
-  useEffect(() => {
-    const updateTotal = () => {
-      let count = 0
-      api?.forEachNode(() => count++)
-      setTotal(count)
-    }
-    updateTotal()
-  }, [api])
-
-  return (
-    <div className="h-full flex items-center px-4 text-xs text-muted-foreground bg-muted/30 border-t">
-      <span className="font-medium">Total Inspections:</span>
-      <span className="ml-2 font-semibold text-foreground">
-        {total.toLocaleString()}
-      </span>
     </div>
   )
 }
