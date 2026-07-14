@@ -19,14 +19,14 @@ import {
   TableIcon,
 } from "lucide-react"
 import { useQueryState } from "nuqs"
-import { Suspense, useCallback, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 
 import { Total_OK_NOK_Chart } from "@/app/charts/inspections/Gate-Analytics-Chart"
-import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
 import { ChartBarInteractive } from "@/app/charts/inspections/Inspection-Analatics"
 import { Total_inspections_per_project_Chart } from "@/app/charts/inspections/Project-Analytics-Chart"
 import { SummaryCards } from "@/app/charts/inspections/SummaryCard"
 import { Total_Defects_Per_Type_Chart } from "@/app/charts/inspections/Total_Defects_Per_Type_Chart"
+import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -71,18 +71,13 @@ type ViewMode = "table" | "analytics"
 export default function ReportPage() {
   const theme = useTableTheme()
 
-  const [appliedFrom, setAppliedFrom] = useQueryState<Date>(
-    "from",
-    fromParam
-  )
+  const [appliedFrom, setAppliedFrom] = useQueryState<Date>("from", fromParam)
   const [appliedTo, setAppliedTo] = useQueryState<Date>("to", toParam)
   const [gate, setGate] = useQueryState("gate", gateParam)
 
   const [activeView, setActiveView] = useState<ViewMode>("table")
 
-  const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(
-    null
-  )
+  const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(null)
 
   const isRangeSelected = !!appliedFrom && !!appliedTo
 
@@ -134,17 +129,12 @@ export default function ReportPage() {
           return (
             <Dialog>
               <DialogTrigger asChild>
-                <Button
-                  variant="link"
-                  className="p-0 h-auto"
-                  disabled={!value}
-                >
+                <Button variant="link" className="p-0 h-auto" disabled={!value}>
                   {!value ? (
                     "-"
                   ) : (
                     <span className="flex flex-row justify-center items-center">
-                      View Image{" "}
-                      <ChevronRightIcon className="ml-2 size-4" />
+                      View Image <ChevronRightIcon className="ml-2 size-4" />
                     </span>
                   )}
                 </Button>
@@ -256,10 +246,12 @@ export default function ReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 w-[130px] justify-between text-xs">
-                {appliedFrom
-                  ? appliedFrom.toLocaleDateString()
-                  : "From"}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-[130px] justify-between text-xs"
+              >
+                {appliedFrom ? appliedFrom.toLocaleDateString() : "From"}
                 <ChevronDownIcon className="size-3 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -276,10 +268,12 @@ export default function ReportPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 w-[130px] justify-between text-xs">
-                {appliedTo
-                  ? appliedTo.toLocaleDateString()
-                  : "To"}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-[130px] justify-between text-xs"
+              >
+                {appliedTo ? appliedTo.toLocaleDateString() : "To"}
                 <ChevronDownIcon className="size-3 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -289,8 +283,7 @@ export default function ReportPage() {
                 selected={appliedTo ?? undefined}
                 onSelect={(d) => setAppliedTo(d ?? null)}
                 disabled={(d) =>
-                  d > new Date() ||
-                  (appliedFrom ? d < appliedFrom : false)
+                  d > new Date() || (appliedFrom ? d < appliedFrom : false)
                 }
                 initialFocus
               />
@@ -313,9 +306,7 @@ export default function ReportPage() {
             className="h-8 text-xs"
             onClick={exportRows}
             disabled={
-              activeView !== "table" ||
-              !tableData ||
-              tableData.length === 0
+              activeView !== "table" || !tableData || tableData.length === 0
             }
           >
             <FileSpreadsheet className="mr-1 size-3" />
@@ -323,13 +314,19 @@ export default function ReportPage() {
           </Button>
 
           <div className="ml-auto">
-            <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewMode)}>
+            <Tabs
+              value={activeView}
+              onValueChange={(v) => setActiveView(v as ViewMode)}
+            >
               <TabsList className="h-8">
                 <TabsTrigger value="table" className="gap-1 text-xs px-2 h-6">
                   <TableIcon className="size-3" />
                   Table
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1 text-xs px-2 h-6">
+                <TabsTrigger
+                  value="analytics"
+                  className="gap-1 text-xs px-2 h-6"
+                >
                   <BarChart3 className="size-3" />
                   Analytics
                 </TabsTrigger>
@@ -365,6 +362,17 @@ export default function ReportPage() {
               theme={theme}
               loading={isFetching}
               defaultColDef={defaultColDef}
+              components={{
+                TotalInspectionsStatusBar,
+              }}
+              statusBar={{
+                statusPanels: [
+                  {
+                    statusPanel: "TotalInspectionsStatusBar",
+                    align: "left",
+                  },
+                ],
+              }}
             />
           </div>
         ) : (
@@ -393,6 +401,28 @@ function EmptyState() {
       <p className="text-xs">
         Select &quot;From&quot; and &quot;To&quot; dates to view data.
       </p>
+    </div>
+  )
+}
+
+const TotalInspectionsStatusBar: React.FC<{ api: GridApi }> = ({ api }) => {
+  const [total, setTotal] = useState(0)
+
+  useEffect(() => {
+    const updateTotal = () => {
+      let count = 0
+      api?.forEachNode(() => count++)
+      setTotal(count)
+    }
+    updateTotal()
+  }, [api])
+
+  return (
+    <div className="h-full flex items-center px-4 text-xs text-muted-foreground bg-muted/30 border-t">
+      <span className="font-medium">Total Inspections:</span>
+      <span className="ml-2 font-semibold text-foreground">
+        {total.toLocaleString()}
+      </span>
     </div>
   )
 }

@@ -9,7 +9,12 @@ const parseAsLocalDate = {
     const date = new Date(year, month - 1, day)
     return date.valueOf() === date.valueOf() ? date : null
   },
-  serialize: (v: Date) => v.toISOString().slice(0, 10),
+  serialize: (v: Date) => {
+    const y = v.getFullYear()
+    const m = String(v.getMonth() + 1).padStart(2, "0")
+    const d = String(v.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  },
   eq: (a: Date, b: Date) => a.valueOf() === b.valueOf(),
 }
 
