@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/popover"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTableTheme } from "@/hooks/use-tableTheme"
+import { buildAnalyticsCsv, downloadCsv } from "@/lib/csv-export"
 import { trpc } from "@/lib/trpc/client"
 import type { InspectionResult } from "@/server/reports/inspection-results"
 
@@ -80,6 +81,7 @@ export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(null)
 
   const isRangeSelected = !!appliedFrom && !!appliedTo
+  const gateNum = gate ? Number(gate) : 0
 
   const {
     data: tableData,
@@ -91,12 +93,60 @@ export default function ReportPage() {
     {
       from: appliedFrom ?? undefined,
       to: appliedTo ?? undefined,
-      gate: gate ? Number(gate) : undefined,
+      gate: gateNum || undefined,
     },
     {
       enabled: isRangeSelected && activeView === "table",
     }
   )
+
+  const { data: statsData } = trpc.charts.get_all_stats.useQuery(
+    { from: appliedFrom, to: appliedTo },
+    { enabled: isRangeSelected && activeView === "analytics" }
+  )
+
+  const { data: defectsPerDayData } =
+    trpc.charts.get_total_defects_per_day.useQuery(
+      { from: appliedFrom, to: appliedTo, gate: gateNum },
+      { enabled: isRangeSelected && activeView === "analytics" }
+    )
+
+  const { data: okNokData } = trpc.charts.get_totals_defects.useQuery(
+    { from: appliedFrom, to: appliedTo, gate: gateNum },
+    { enabled: isRangeSelected && activeView === "analytics" }
+  )
+
+  const { data: projectData } = trpc.charts.get_totals_defects.useQuery(
+    {
+      from: appliedFrom,
+      to: appliedTo,
+      groupBy: "project",
+      limit: 6,
+      gate: gateNum,
+    },
+    { enabled: isRangeSelected && activeView === "analytics" }
+  )
+
+  type GateRow = {
+    gate_name: string
+    OK: number
+    NOK: number
+    total: number
+    defect_rate: number
+  }
+  type ProjectRow = {
+    project: string
+    defect_count: number
+    total_panels_inspected: number
+  }
+  const okNokCasted = (okNokData ?? []) as GateRow[]
+  const projectCasted = (projectData ?? []) as ProjectRow[]
+
+  const { data: defectTypeData } =
+    trpc.charts.get_defect_counts_by_type.useQuery(
+      { from: appliedFrom, to: appliedTo, limit: 6, gate: gateNum },
+      { enabled: isRangeSelected && activeView === "analytics" }
+    )
 
   const columnDefs = useMemo<ColDef<InspectionResult>[]>(() => {
     const cols: ColDef<InspectionResult>[] = [
@@ -229,6 +279,24 @@ export default function ReportPage() {
     })
   }, [gridApi])
 
+  const hasAnalyticsData =
+    statsData && defectsPerDayData && okNokData && projectData && defectTypeData
+
+  const exportAnalytics = useCallback(() => {
+    if (!hasAnalyticsData) return
+    const csv = buildAnalyticsCsv({
+      stats: statsData,
+      defectsPerDay: defectsPerDayData,
+      okNokByGate: okNokCasted,
+      inspectionsPerProject: projectCasted,
+      defectsPerType: defectTypeData,
+    })
+    downloadCsv(
+      csv,
+      `inspection-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [statsData, defectsPerDayData, okNokCasted, projectCasted, defectTypeData])
+
   if (isError) {
     return (
       <div className="p-10 text-center">
@@ -304,9 +372,11 @@ export default function ReportPage() {
             variant="outline"
             size="sm"
             className="h-8 text-xs"
-            onClick={exportRows}
+            onClick={activeView === "table" ? exportRows : exportAnalytics}
             disabled={
-              activeView !== "table" || !tableData || tableData.length === 0
+              activeView === "table"
+                ? !tableData || tableData.length === 0
+                : !hasAnalyticsData
             }
           >
             <FileSpreadsheet className="mr-1 size-3" />
@@ -364,14 +434,6 @@ export default function ReportPage() {
               defaultColDef={defaultColDef}
               components={{
                 TotalInspectionsStatusBar,
-              }}
-              statusBar={{
-                statusPanels: [
-                  {
-                    statusPanel: "TotalInspectionsStatusBar",
-                    align: "left",
-                  },
-                ],
               }}
             />
           </div>
