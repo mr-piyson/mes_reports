@@ -32,6 +32,7 @@ import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -192,6 +193,7 @@ export default function ReportPage() {
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Image Preview</DialogTitle>
+                  <DialogDescription>Preview of the defect image</DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-center">
                   {value && (
@@ -317,6 +319,7 @@ export default function ReportPage() {
               <Button
                 variant="outline"
                 size="sm"
+                suppressHydrationWarning
                 className="h-8 w-[130px] justify-between text-xs"
               >
                 {appliedFrom ? appliedFrom.toLocaleDateString() : "From"}
@@ -339,6 +342,7 @@ export default function ReportPage() {
               <Button
                 variant="outline"
                 size="sm"
+                suppressHydrationWarning
                 className="h-8 w-[130px] justify-between text-xs"
               >
                 {appliedTo ? appliedTo.toLocaleDateString() : "To"}
