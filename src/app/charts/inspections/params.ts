@@ -1,8 +1,20 @@
-import { parseAsIsoDate, parseAsString } from "nuqs"
+import { parseAsString } from "nuqs"
 
-// nuqs built-in parser handles Date objects cleanly
-export const fromParam = parseAsIsoDate
-export const toParam = parseAsIsoDate
+// Create dates at local midnight (matching Calendar/report behavior)
+// nuqs' parseAsIsoDate uses new Date("YYYY-MM-DD") which creates UTC midnight,
+// causing timezone drift in MySQL datetime comparisons.
+const parseAsLocalDate = {
+  parse: (v: string) => {
+    const [year, month, day] = v.slice(0, 10).split("-").map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.valueOf() === date.valueOf() ? date : null
+  },
+  serialize: (v: Date) => v.toISOString().slice(0, 10),
+  eq: (a: Date, b: Date) => a.valueOf() === b.valueOf(),
+}
+
+export const fromParam = parseAsLocalDate
+export const toParam = parseAsLocalDate
 
 // gate value is a string, defaulting to "0"
 export const gateParam = parseAsString.withDefault("0")
