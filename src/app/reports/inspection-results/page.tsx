@@ -417,7 +417,7 @@ export default function ReportPage() {
               <TabsTrigger
                 key={opt.value}
                 value={opt.value}
-                className="flex-1 text-xs px-2 min-w-[60px]"
+                className="flex-1 text-xs min-w-[75px]"
               >
                 {opt.label}
               </TabsTrigger>
