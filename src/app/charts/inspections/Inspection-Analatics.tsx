@@ -50,7 +50,7 @@ export function ChartBarInteractive() {
             <span>Loading defect analytics...</span>
           </div>
         ) : !data || data.length === 0 ? (
-          <div className="flex h-[300px] items-center justify-center text-destructive">
+          <div className="flex h-[300px] items-center justify-center">
             No data found for the selected period.
           </div>
         ) : (

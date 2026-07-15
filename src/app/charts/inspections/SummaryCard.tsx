@@ -13,6 +13,7 @@ export function SummaryCards() {
   const { data: statsData, isLoading } = trpc.charts.get_all_stats.useQuery({
     from: appliedFrom,
     to: appliedTo,
+    gate: Number(gate),
   })
 
   const dynamicSummary = [

@@ -283,11 +283,12 @@ export const chartsRouter = router({
       z.object({
         from: z.date().optional().nullable(),
         to: z.date().optional().nullable(),
+        gate: z.number().int().min(0).default(0),
       })
     )
     .query(async ({ input }) => {
       try {
-        const { from, to } = input
+        const { from, to, gate } = input
 
         // --- Build parameterized query ---
         const conditions: string[] = []
@@ -303,6 +304,11 @@ export const chartsRouter = router({
         if (to) {
           conditions.push("ir.date <= ?")
           params.push(to)
+        }
+
+        if (gate !== 0) {
+          conditions.push("ir.gate = ?")
+          params.push(gate)
         }
 
         const whereClause =

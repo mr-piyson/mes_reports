@@ -103,7 +103,7 @@ export default function ReportPage() {
   )
 
   const { data: statsData } = trpc.charts.get_all_stats.useQuery(
-    { from: appliedFrom, to: appliedTo },
+    { from: appliedFrom, to: appliedTo, gate: gateNum },
     { enabled: isRangeSelected && activeView === "analytics" }
   )
 

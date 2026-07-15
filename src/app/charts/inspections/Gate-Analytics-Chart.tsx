@@ -67,7 +67,7 @@ export function Total_OK_NOK_Chart() {
             <span>Loading defect analytics...</span>
           </div>
         ) : !data || data.length === 0 ? (
-          <div className="flex h-75 items-center justify-center text-destructive">
+          <div className="flex h-75 items-center justify-center ">
             No data found for the selected period.
           </div>
         ) : (
