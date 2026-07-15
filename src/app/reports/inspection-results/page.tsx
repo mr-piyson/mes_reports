@@ -193,7 +193,9 @@ export default function ReportPage() {
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Image Preview</DialogTitle>
-                  <DialogDescription>Preview of the defect image</DialogDescription>
+                  <DialogDescription>
+                    Preview of the defect image
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-center">
                   {value && (
@@ -332,7 +334,7 @@ export default function ReportPage() {
                 selected={appliedFrom ?? undefined}
                 onSelect={(d) => setAppliedFrom(d ?? null)}
                 disabled={(d) => d > new Date()}
-                initialFocus
+                captionLayout="dropdown"
               />
             </PopoverContent>
           </Popover>
@@ -357,7 +359,7 @@ export default function ReportPage() {
                 disabled={(d) =>
                   d > new Date() || (appliedFrom ? d < appliedFrom : false)
                 }
-                initialFocus
+                captionLayout="dropdown"
               />
             </PopoverContent>
           </Popover>
@@ -410,7 +412,7 @@ export default function ReportPage() {
         </div>
 
         <Tabs value={gate} onValueChange={setGate}>
-          <TabsList className="w-full bg-muted/50 h-8 overflow-x-auto">
+          <TabsList className="w-full h-full overflow-x-auto overflow-y-hidden">
             {GATE_OPTIONS.map((opt) => (
               <TabsTrigger
                 key={opt.value}
