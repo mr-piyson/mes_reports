@@ -24,6 +24,12 @@ import { trpc } from "@/lib/trpc/client"
 
 import { fromParam, gateParam, toParam } from "./params"
 
+type ProjectData = {
+  project: string
+  defect_count: number
+  total_panels_inspected: number
+}
+
 // Updated chart configuration matching your query fields and shadcn UI palette styles
 const chartConfig = {
   total_panels_inspected: {
@@ -70,7 +76,7 @@ export function Total_inspections_per_project_Chart() {
             {/* Setting layout to vertical for long project name scannability */}
             <BarChart
               accessibilityLayer
-              data={data}
+              data={data as ProjectData[]}
               layout="vertical"
               margin={{ left: 24, right: 16 }}
             >

@@ -20,6 +20,15 @@ import {
 } from "@/components/ui/chart"
 import { trpc } from "@/lib/trpc/client"
 
+type GateData = {
+  gate_name: string
+  OK: number
+  NOK: number
+  total: number
+  defect_rate: number
+  gate: number
+}
+
 // 1. Map config keys to match our API payload structure
 const chartConfig = {
   OK: {
@@ -41,6 +50,7 @@ export function Total_OK_NOK_Chart() {
     from: appliedFrom,
     to: appliedTo,
     gate: Number(gate),
+    groupBy: "gate",
   })
 
   return (
@@ -64,7 +74,7 @@ export function Total_OK_NOK_Chart() {
           <ChartContainer config={chartConfig}>
             <BarChart
               accessibilityLayer
-              data={data}
+              data={data as GateData[]}
               margin={{ top: 20 }} // Added spacing to prevent numeric labels from getting clipped
             >
               <CartesianGrid vertical={false} />
@@ -88,7 +98,7 @@ export function Total_OK_NOK_Chart() {
                   className="fill-foreground"
                   fontSize={12}
                   // Hides '0' tags if you want to keep the rendering area clean
-                  formatter={(value: number) => (value > 0 ? value : "")}
+                  formatter={(value) => (Number(value) > 0 ? value : "")}
                 />
               </Bar>
 
@@ -100,7 +110,7 @@ export function Total_OK_NOK_Chart() {
                   offset={10}
                   className="fill-foreground"
                   fontSize={12}
-                  formatter={(value: number) => (value > 0 ? value : "")}
+                  formatter={(value) => (Number(value) > 0 ? value : "")}
                 />
               </Bar>
             </BarChart>

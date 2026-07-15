@@ -113,7 +113,7 @@ export const RouteCellRenderer = ({ value }: { value: string[] }) => {
             <Badge
               key={index}
               className="m-1 text-foreground border border-success-foreground/50"
-              variant="success"
+              variant="outline"
               title={`Step ${index + 1}`}
             >
               {step}
