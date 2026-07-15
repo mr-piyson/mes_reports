@@ -19,7 +19,7 @@ import {
   Search,
   TableIcon,
 } from "lucide-react"
-import { useQueryState } from "nuqs"
+import { parseAsString, useQueryState } from "nuqs"
 import { Suspense, useCallback, useMemo, useState } from "react"
 
 import { Total_OK_NOK_Chart } from "@/app/charts/inspections/Gate-Analytics-Chart"
@@ -69,6 +69,8 @@ const GATE_OPTIONS = [
   { value: "6", label: "Final" },
 ]
 
+const viewParam = parseAsString.withDefault("table")
+
 type ViewMode = "table" | "analytics"
 
 export default function ReportPage() {
@@ -78,7 +80,7 @@ export default function ReportPage() {
   const [appliedTo, setAppliedTo] = useQueryState<Date>("to", toParam)
   const [gate, setGate] = useQueryState("gate", gateParam)
 
-  const [activeView, setActiveView] = useState<ViewMode>("table")
+  const [activeView, setActiveView] = useQueryState("view", viewParam)
 
   const [gridApi, setGridApi] = useState<GridApi<InspectionResult> | null>(null)
 
