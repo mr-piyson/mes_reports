@@ -129,6 +129,16 @@ export default function ReportPage() {
     { enabled: isRangeSelected && activeView === "analytics" }
   )
 
+  const { data: projectDataFull } = trpc.charts.get_totals_defects.useQuery(
+    {
+      from: appliedFrom,
+      to: appliedTo,
+      groupBy: "project",
+      gate: gateNum,
+    },
+    { enabled: isRangeSelected && activeView === "analytics" }
+  )
+
   type GateRow = {
     gate_name: string
     OK: number
@@ -143,10 +153,17 @@ export default function ReportPage() {
   }
   const okNokCasted = (okNokData ?? []) as GateRow[]
   const projectCasted = (projectData ?? []) as ProjectRow[]
+  const projectFullCasted = (projectDataFull ?? []) as ProjectRow[]
 
   const { data: defectTypeData } =
     trpc.charts.get_defect_counts_by_type.useQuery(
       { from: appliedFrom, to: appliedTo, limit: 6, gate: gateNum },
+      { enabled: isRangeSelected && activeView === "analytics" }
+    )
+
+  const { data: defectTypeDataFull } =
+    trpc.charts.get_defect_counts_by_type.useQuery(
+      { from: appliedFrom, to: appliedTo, gate: gateNum },
       { enabled: isRangeSelected && activeView === "analytics" }
     )
 
@@ -285,7 +302,7 @@ export default function ReportPage() {
   }, [gridApi])
 
   const hasAnalyticsData =
-    statsData && defectsPerDayData && okNokData && projectData && defectTypeData
+    statsData && defectsPerDayData && okNokData && projectData && defectTypeData && projectDataFull && defectTypeDataFull
 
   const exportAnalytics = useCallback(() => {
     if (!hasAnalyticsData) return
@@ -329,9 +346,9 @@ export default function ReportPage() {
   }, [okNokCasted])
 
   const downloadProjectsCsv = useCallback(() => {
-    if (!projectCasted || projectCasted.length === 0) return
+    if (!projectFullCasted || projectFullCasted.length === 0) return
     const header = "Project,Defect Count,Total Panels Inspected"
-    const rows = projectCasted.map(
+    const rows = projectFullCasted.map(
       (r: ProjectRow) =>
         `${r.project},${r.defect_count},${r.total_panels_inspected}`
     )
@@ -339,19 +356,19 @@ export default function ReportPage() {
       [header, ...rows].join("\n"),
       `project-analytics-${new Date().toISOString().split("T")[0]}.csv`
     )
-  }, [projectCasted])
+  }, [projectFullCasted])
 
   const downloadDefectTypesCsv = useCallback(() => {
-    if (!defectTypeData || defectTypeData.length === 0) return
+    if (!defectTypeDataFull || defectTypeDataFull.length === 0) return
     const header = "Defect Type,Defect Count"
-    const rows = (defectTypeData as { defect_type: string; defect_count: number }[]).map(
+    const rows = (defectTypeDataFull as { defect_type: string; defect_count: number }[]).map(
       (r) => `${r.defect_type},${r.defect_count}`
     )
     downloadCsv(
       [header, ...rows].join("\n"),
       `defect-type-analytics-${new Date().toISOString().split("T")[0]}.csv`
     )
-  }, [defectTypeData])
+  }, [defectTypeDataFull])
 
   if (isError) {
     return (
@@ -524,7 +541,7 @@ export default function ReportPage() {
                   <Total_inspections_per_project_Chart />
                   <button
                     onClick={downloadProjectsCsv}
-                    disabled={!projectCasted || projectCasted.length === 0}
+                    disabled={!projectFullCasted || projectFullCasted.length === 0}
                     className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
                   >
                     <Download className="size-4" />
@@ -534,7 +551,7 @@ export default function ReportPage() {
                   <Total_Defects_Per_Type_Chart />
                   <button
                     onClick={downloadDefectTypesCsv}
-                    disabled={!defectTypeData || defectTypeData.length === 0}
+                    disabled={!defectTypeDataFull || defectTypeDataFull.length === 0}
                     className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
                   >
                     <Download className="size-4" />
