@@ -18,13 +18,20 @@ import { useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { useTableTheme } from "@/hooks/use-tableTheme"
 import { trpc } from "@/lib/trpc/client"
 import { PanelsReportData } from "@/server/reports/panel"
@@ -38,33 +45,45 @@ import {
   StatusCellRenderer,
 } from "../CellsRender"
 
+interface ProjectItem {
+  project_code: string
+  project_name: string
+}
+
+const ALL_PROJECTS: ProjectItem = { project_code: "all", project_name: "All Projects" }
+
 ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 
 // --- Main Component ---
 export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
   const [selectedRows, setSelectedRows] = useState<PanelsReportData[]>([])
-  const [filter, setFilter] = useState("today") // Default to today instead of empty string
+  const [filter, setFilter] = useState("today")
   const [panelType, setPanelType] = useState<"all" | "main" | "assembly">(
     "all"
   )
+  const [selectedProject, setSelectedProject] = useState<ProjectItem>(ALL_PROJECTS)
   const theme = useTableTheme()
+
+  const { data: projects = [] } = trpc.panels.getProjects.useQuery() as {
+    data: ProjectItem[]
+  }
+
+  const allProjectItems = useMemo(
+    () => [ALL_PROJECTS, ...projects],
+    [projects]
+  )
 
   const {
     data: tableData = [],
     isLoading,
     error,
     refetch,
-  } = trpc.panels.getPanels.useQuery({ filter, panelType })
-
-  // Derived unique projects for the dropdown
-  const projects = useMemo(() => {
-    if (!tableData) return []
-    const projectSet = new Set(
-      tableData.map((row: any) => row.project).filter(Boolean)
-    )
-    return Array.from(projectSet).sort()
-  }, [tableData])
+  } = trpc.panels.getPanels.useQuery({
+    filter,
+    panelType,
+    projectCode: selectedProject.project_code,
+  })
 
   const gridOptions = useMemo<GridOptions>(() => {
     return {
@@ -152,7 +171,7 @@ export default function ReportPage() {
       sortable: true,
       filter: true,
       floatingFilter: true,
-      suppressMovable: true, // Grid level prop moved to defaultColDef
+      suppressMovable: true,
     }),
     []
   )
@@ -177,27 +196,10 @@ export default function ReportPage() {
     refetch()
   }, [gridApi, refetch])
 
-  const handleProjectFilter = useCallback(
-    (value: string) => {
-      if (!gridApi) return
-      if (value === "No filter") {
-        gridApi.destroyFilter("project")
-      } else {
-        gridApi
-          .setColumnFilterModel("project", {
-            type: "equals",
-            filter: value,
-          })
-          .then(() => gridApi.onFilterChanged())
-      }
-    },
-    [gridApi]
-  )
-
   const exportRows = useCallback(() => {
     if (gridApi) {
       gridApi.exportDataAsCsv({
-        onlySelected: selectedRows.length > 0, // Export only selected if there are any
+        onlySelected: selectedRows.length > 0,
         fileName: `filtered-report-${new Date().toISOString().split("T")[0]}.csv`,
       })
     }
@@ -249,23 +251,33 @@ export default function ReportPage() {
             <span className="max-sm:hidden">Refresh</span>
           </Button>
 
-          <Select onValueChange={handleProjectFilter}>
-            <SelectTrigger
-              disabled={projects.length === 0 || isLoading}
-              className="w-48 border-border"
-            >
-              <SelectValue placeholder="Filter Project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="No filter">All Projects</SelectItem>
-              <Separator className="my-2" />
-              {projects.map((project) => (
-                <SelectItem key={project as string} value={project as string}>
-                  {project as string}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Combobox
+            value={selectedProject}
+            onValueChange={(val) => setSelectedProject(val ?? ALL_PROJECTS)}
+            items={allProjectItems}
+            itemToStringLabel={(p: ProjectItem) =>
+              `${p.project_code} ${p.project_name}`
+            }
+          >
+            <ComboboxInput placeholder="Search project..." className="w-56" />
+            <ComboboxContent>
+              <ComboboxEmpty>No project found.</ComboboxEmpty>
+              <ComboboxList>
+                {(p: ProjectItem) => (
+                  <ComboboxItem key={p.project_code} value={p}>
+                    <span className="flex flex-col">
+                      <span className="text-sm font-medium leading-snug">
+                        {p.project_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {p.project_code}
+                      </span>
+                    </span>
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
 
           <Select
             value={panelType}

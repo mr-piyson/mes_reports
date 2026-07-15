@@ -38,17 +38,38 @@ const filterSchema = z
   .catch("all")
 
 export const panelsRouter = router({
+  getProjects: publicProcedure.query(async () => {
+    try {
+      const sql = `
+        SELECT p.project_code, p.project_name
+        FROM mes.projects p
+        WHERE p.project_code IS NOT NULL
+      `
+      const [rows] = await mes.execute(sql)
+      return Array.isArray(rows) ? rows : []
+    } catch (error) {
+      console.error("Database error:", error)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch projects.",
+        cause: error,
+      })
+    }
+  }),
+
   getPanels: publicProcedure
     .input(
       z.object({
         filter: z.string().optional(),
         panelType: z.enum(["all", "main", "assembly"]).catch("all"),
+        projectCode: z.string().catch("all"),
       })
     )
     .query(async ({ input }) => {
       // 2. Validate input and default to 'all'
       const filter = filterSchema.parse(input.filter)
       const panelType = input.panelType
+      const projectCode = input.projectCode
 
       try {
         let sql = `
@@ -108,7 +129,12 @@ export const panelsRouter = router({
           sql += " AND u.key3 != 0"
         }
 
-        const [rows] = await mes.execute(sql)
+        if (projectCode !== "all") {
+          sql += " AND i.project_category = ?"
+        }
+
+        const params = projectCode !== "all" ? [projectCode] : []
+        const [rows] = await mes.execute(sql, params)
 
         // 4. Guaranteed Array Return: Always returns [] if rows is null/undefined
         return Array.isArray(rows) ? rows : []
