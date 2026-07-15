@@ -181,10 +181,7 @@ export const chartsRouter = router({
 
         const customOrder = [1, 2, 10, 3, 11, 12, 5, 6]
 
-        const orderedGates =
-          order === "asc" ? customOrder : [...customOrder].reverse()
-
-        return orderedGates
+        return customOrder
           .filter((gateId) => formattedData[gateId])
           .map((gateId) => ({
             gate: gateId,
