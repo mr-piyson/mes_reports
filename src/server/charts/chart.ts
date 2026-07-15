@@ -313,7 +313,7 @@ export const chartsRouter = router({
             COUNT(*) AS total_inspections,
             COUNT(DISTINCT panel_serial) AS total_panels_inspected,
             COUNT(DISTINCT CASE WHEN inspection_result != 'OK' THEN panel_serial END) AS total_defect_panels,
-            defect_count AS total_defects,
+            SUM(defect_count) AS total_defects,
             ROUND(
                 (COUNT(DISTINCT CASE WHEN inspection_result != 'OK' THEN panel_serial END) * 100.0) /
                 NULLIF(COUNT(DISTINCT panel_serial), 0),
