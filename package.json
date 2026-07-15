@@ -7,7 +7,7 @@
     "lint": "next lint",
     "dev": "open http://localhost:4000 & next dev -p 4000 ",
     "build": "next build ",
-    "update": "git pull && bun install && bun run build && sudo systemctl restart mes-reports"
+    "update": "git fetch --all && git reset --hard origin/main && git clean -df && bun install && bun run build && sudo systemctl restart mes-reports"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
