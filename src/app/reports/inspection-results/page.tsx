@@ -14,6 +14,7 @@ import {
   BarChart3,
   ChevronDownIcon,
   ChevronRightIcon,
+  Download,
   FileSpreadsheet,
   Search,
   TableIcon,
@@ -59,12 +60,12 @@ ModuleRegistry.registerModules([AllCommunityModule, CsvExportModule])
 const GATE_OPTIONS = [
   { value: "0", label: "All" },
   { value: "1", label: "Mold" },
-  { value: "2", label: "Gelcoat" },
-  { value: "10", label: "Demold" },
-  { value: "3", label: "Trim" },
-  { value: "11", label: "Drill" },
-  { value: "12", label: "Bond" },
-  { value: "5", label: "Paint" },
+  { value: "2", label: "Gelcoating" },
+  { value: "10", label: "Demolding" },
+  { value: "3", label: "Trimming" },
+  { value: "11", label: "Drilling" },
+  { value: "12", label: "Bonding" },
+  { value: "5", label: "Painting" },
   { value: "6", label: "Final" },
 ]
 
@@ -301,6 +302,57 @@ export default function ReportPage() {
     )
   }, [statsData, defectsPerDayData, okNokCasted, projectCasted, defectTypeData])
 
+  const downloadDailyCsv = useCallback(() => {
+    if (!defectsPerDayData || defectsPerDayData.length === 0) return
+    const header = "Date,Count"
+    const rows = defectsPerDayData.map(
+      (r: { date: string | Date | null; count: number }) =>
+        `${r.date ?? ""},${r.count}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `daily-defects-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [defectsPerDayData])
+
+  const downloadGatesCsv = useCallback(() => {
+    if (!okNokCasted || okNokCasted.length === 0) return
+    const header = "Gate,OK,NOK,Total,Defect Rate"
+    const rows = okNokCasted.map(
+      (r: GateRow) =>
+        `${r.gate_name},${r.OK},${r.NOK},${r.total},${r.defect_rate}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `gates-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [okNokCasted])
+
+  const downloadProjectsCsv = useCallback(() => {
+    if (!projectCasted || projectCasted.length === 0) return
+    const header = "Project,Defect Count,Total Panels Inspected"
+    const rows = projectCasted.map(
+      (r: ProjectRow) =>
+        `${r.project},${r.defect_count},${r.total_panels_inspected}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `project-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [projectCasted])
+
+  const downloadDefectTypesCsv = useCallback(() => {
+    if (!defectTypeData || defectTypeData.length === 0) return
+    const header = "Defect Type,Defect Count"
+    const rows = (defectTypeData as { defect_type: string; defect_count: number }[]).map(
+      (r) => `${r.defect_type},${r.defect_count}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `defect-type-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [defectTypeData])
+
   if (isError) {
     return (
       <div className="p-10 text-center">
@@ -447,11 +499,47 @@ export default function ReportPage() {
           <Suspense>
             <div className="p-4 space-y-4 overflow-auto h-full">
               <SummaryCards />
-              <ChartBarInteractive />
+              <div className="relative group">
+                <ChartBarInteractive />
+                <button
+                  onClick={downloadDailyCsv}
+                  disabled={!defectsPerDayData || defectsPerDayData.length === 0}
+                  className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                >
+                  <Download className="size-4" />
+                </button>
+              </div>
               <div className="grid grid-cols-1 xl:grid-cols-3 w-full gap-4">
-                <Total_OK_NOK_Chart />
-                <Total_inspections_per_project_Chart />
-                <Total_Defects_Per_Type_Chart />
+                <div className="relative group">
+                  <Total_OK_NOK_Chart />
+                  <button
+                    onClick={downloadGatesCsv}
+                    disabled={!okNokCasted || okNokCasted.length === 0}
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                  >
+                    <Download className="size-4" />
+                  </button>
+                </div>
+                <div className="relative group">
+                  <Total_inspections_per_project_Chart />
+                  <button
+                    onClick={downloadProjectsCsv}
+                    disabled={!projectCasted || projectCasted.length === 0}
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                  >
+                    <Download className="size-4" />
+                  </button>
+                </div>
+                <div className="relative group">
+                  <Total_Defects_Per_Type_Chart />
+                  <button
+                    onClick={downloadDefectTypesCsv}
+                    disabled={!defectTypeData || defectTypeData.length === 0}
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                  >
+                    <Download className="size-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </Suspense>
