@@ -45,6 +45,9 @@ export default function ReportPage() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null)
   const [selectedRows, setSelectedRows] = useState<PanelsReportData[]>([])
   const [filter, setFilter] = useState("today") // Default to today instead of empty string
+  const [panelType, setPanelType] = useState<"all" | "main" | "assembly">(
+    "all"
+  )
   const theme = useTableTheme()
 
   const {
@@ -52,7 +55,7 @@ export default function ReportPage() {
     isLoading,
     error,
     refetch,
-  } = trpc.panels.getPanels.useQuery({ filter })
+  } = trpc.panels.getPanels.useQuery({ filter, panelType })
 
   // Derived unique projects for the dropdown
   const projects = useMemo(() => {
@@ -261,6 +264,22 @@ export default function ReportPage() {
                   {project as string}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={panelType}
+            onValueChange={(value) =>
+              setPanelType(value as "all" | "main" | "assembly")
+            }
+          >
+            <SelectTrigger className="w-44 border-border">
+              <SelectValue placeholder="Panel Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Panels</SelectItem>
+              <SelectItem value="main">Main Panels</SelectItem>
+              <SelectItem value="assembly">Assembly Panels</SelectItem>
             </SelectContent>
           </Select>
         </div>

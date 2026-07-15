@@ -42,11 +42,13 @@ export const panelsRouter = router({
     .input(
       z.object({
         filter: z.string().optional(),
+        panelType: z.enum(["all", "main", "assembly"]).catch("all"),
       })
     )
     .query(async ({ input }) => {
       // 2. Validate input and default to 'all'
       const filter = filterSchema.parse(input.filter)
+      const panelType = input.panelType
 
       try {
         let sql = `
@@ -56,6 +58,7 @@ export const panelsRouter = router({
             u.shortchar01 as epicor_asm_part_no,
             u.key1 as job_id,
             i.created_at,
+            u.key3 as tree,
             i.project_category as project,
             CASE WHEN ir.panel_serial IS NOT NULL THEN 1 ELSE 0 END as final,
             CASE WHEN lp.part_id IS NOT NULL THEN 1 ELSE 0 END as wrapped,
@@ -63,7 +66,6 @@ export const panelsRouter = router({
             c.code as container,
             ir.datetime_out as qc_datetime
           FROM label_app.kla_factory_epicor i 
-          LEFT JOIN mes.plans pl ON pl.panel_serial = i.qr_code
           LEFT JOIN label_app.ud31 u ON u.key5 = i.qr_code 
           LEFT JOIN (
             SELECT ir1.panel_serial, MAX(ir1.datetime_out) as datetime_out
@@ -81,7 +83,7 @@ export const panelsRouter = router({
           LEFT JOIN mes.packages pk ON pk.id = pi.package_id
           LEFT JOIN mes.container_items ci ON ci.item_id = pk.code
           LEFT JOIN mes.containers c ON c.id = ci.container_id
-          WHERE i.qr_code IS NOT NULL
+          WHERE i.qr_code IS NOT NULL and u.key1 is not NULL
         `
 
         // 3. Logic Correction: Fixed Interval math and used template literals safely
@@ -99,6 +101,12 @@ export const panelsRouter = router({
         }
 
         sql += filterMap[filter] || ""
+
+        if (panelType === "main") {
+          sql += " AND u.key3 = 0"
+        } else if (panelType === "assembly") {
+          sql += " AND u.key3 != 0"
+        }
 
         const [rows] = await mes.execute(sql)
 
