@@ -130,11 +130,13 @@ export const panelsRouter = router({
         }
 
         if (projectCode !== "all") {
-          sql += " AND i.project_category = ?"
+          sql += " AND i.project_code = ?"
         }
 
         const params = projectCode !== "all" ? [projectCode] : []
-        const [rows] = await mes.execute(sql, params)
+        const [rows] = params.length
+          ? await mes.query(sql, params)
+          : await mes.query(sql)
 
         // 4. Guaranteed Array Return: Always returns [] if rows is null/undefined
         return Array.isArray(rows) ? rows : []
