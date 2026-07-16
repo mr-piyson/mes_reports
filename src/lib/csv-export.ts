@@ -49,7 +49,7 @@ export function buildAnalyticsCsv(data: {
       ["Total Inspections", data.stats.total_inspections],
       ["Total Panels Inspected", data.stats.total_panels_inspected],
       ["Defect Panels", data.stats.total_defect_panels],
-      ["Total Raw Defects", data.stats.total_defects],
+      ["Total Number of Defects", data.stats.total_defects],
       ["Defect Rate (%)", data.stats.defect_panel_percentage],
     ])
   )
