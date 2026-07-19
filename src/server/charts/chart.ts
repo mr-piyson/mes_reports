@@ -416,28 +416,28 @@ export const chartsRouter = router({
 
         const sql = `
           SELECT
-            DATE(d.datetime_in) AS date,
+            ir.date AS date,
+            COUNT(DISTINCT ir.panel_serial) AS total_panels_inspected,
             COUNT(d.id) AS total_defects
-          FROM quality.defects d
-          LEFT JOIN quality.inspection_results ir ON d.inspection_id = ir.id
+          FROM quality.inspection_results ir
+          LEFT JOIN quality.defects d ON d.inspection_id = ir.id
           ${whereConditions}
-          GROUP BY date
-          ORDER BY date ASC
+          GROUP BY ir.date
+          ORDER BY ir.date ASC
         `
 
-        // FIX 1: Updated type definition to expect 'date' instead of 'defect_day'
         const [rows] = await db.mes.query<
           (RowDataPacket & {
             date: Date | string | null
+            total_panels_inspected: number
             total_defects: number
           })[]
         >(sql, params)
 
-        // --- Format Data ---
-        // FIX 2: Map from 'row.date' instead of 'row.defect_day'
         return rows.map((row) => ({
           date: row.date,
           count: Number(row.total_defects),
+          panels: Number(row.total_panels_inspected),
         }))
       } catch (error) {
         console.error("tRPC Error (get_total_defects_per_day):", error)

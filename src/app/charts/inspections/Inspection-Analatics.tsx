@@ -20,14 +20,18 @@ export const description = "Daily Defect Analytics"
 const chartConfig = {
   defects: {
     label: "Total Defects",
-    color: "var(--chart-1)", // Make sure this CSS variable exists in your global stylesheet
+    color: "var(--chart-1)",
+  },
+  panels: {
+    label: "Panels Inspected",
+    color: "var(--chart-2)",
   },
 } satisfies ChartConfig
 
-// Define the shape of the data returned by your API
 type DefectData = {
   date: string | Date | null
   count: number
+  panels: number
 }
 
 export function ChartBarInteractive() {
@@ -85,8 +89,7 @@ export function ChartBarInteractive() {
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    className="w-[150px]"
-                    nameKey="defects"
+                    className="w-[200px]"
                     labelFormatter={(value) => {
                       if (!value) return ""
                       return new Date(value).toLocaleDateString("en-US", {
@@ -98,10 +101,14 @@ export function ChartBarInteractive() {
                   />
                 }
               />
-              {/* Maps to the "count" returned by the API */}
               <Bar
                 dataKey="count"
                 fill="var(--color-defects)"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey="panels"
+                fill="var(--color-panels)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>

@@ -323,10 +323,10 @@ export default function ReportPage() {
 
   const downloadDailyCsv = useCallback(() => {
     if (!defectsPerDayData || defectsPerDayData.length === 0) return
-    const header = "Date,Count"
+    const header = "Date,Panels Inspected,Count"
     const rows = defectsPerDayData.map(
-      (r: { date: string | Date | null; count: number }) =>
-        `${r.date ?? ""},${r.count}`
+      (r: { date: string | Date | null; count: number; panels: number }) =>
+        `${r.date ?? ""},${r.panels ?? 0},${r.count}`
     )
     downloadCsv(
       [header, ...rows].join("\n"),

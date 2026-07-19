@@ -27,7 +27,7 @@ export function buildAnalyticsCsv(data: {
     total_defects: number
     defect_panel_percentage: number
   }
-  defectsPerDay: { date: string | Date | null; count: number }[]
+  defectsPerDay: { date: string | Date | null; count: number; panels: number }[]
   okNokByGate: {
     gate_name: string
     OK: number
@@ -57,12 +57,12 @@ export function buildAnalyticsCsv(data: {
   sections.push(
     buildCsvSection(
       "Defects Per Day",
-      ["Date", "Count"],
+      ["Date", "Panels Inspected", "Count"],
       data.defectsPerDay.map((row) => {
         const dateStr = row.date
           ? new Date(row.date).toISOString().split("T")[0]
           : ""
-        return [dateStr, row.count]
+        return [dateStr, row.panels ?? 0, row.count]
       })
     )
   )
