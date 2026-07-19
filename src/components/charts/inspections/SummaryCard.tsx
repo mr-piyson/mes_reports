@@ -26,7 +26,7 @@ export function SummaryCards() {
       label: "Total Panels Inspected",
       value: statsData?.total_panels_inspected ?? 0,
     },
-    { label: "Defect Panels", value: statsData?.total_defect_panels ?? 0 },
+    { label: "Defected Panels", value: statsData?.total_defect_panels ?? 0 },
     { label: "Total Number of Defects", value: statsData?.total_defects ?? 0 },
     {
       label: "Defect Rate",
