@@ -1,10 +1,12 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Download, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useQueryState } from "nuqs"
+import { useCallback, useState } from "react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
 import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -19,6 +21,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { trpc } from "@/lib/trpc/client"
+
+import { downloadCsv } from "@/lib/csv-export"
 
 type GateData = {
   gate_name: string
@@ -45,6 +49,7 @@ export function Total_OK_NOK_Chart() {
   const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
   const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
   const [gate, setGate] = useQueryState("gate", gateParam)
+  const [showLabels, setShowLabels] = useState(true)
 
   const { data, isLoading } = trpc.charts.get_totals_defects.useQuery({
     from: appliedFrom,
@@ -53,11 +58,51 @@ export function Total_OK_NOK_Chart() {
     groupBy: "gate",
   })
 
+  const handleExport = useCallback(() => {
+    if (!data || data.length === 0) return
+    const header = "Gate,OK,NOK,Total,Defect Rate"
+    const rows = (data as GateData[]).map(
+      (r) =>
+        `${r.gate_name},${r.OK},${r.NOK},${r.total},${r.defect_rate}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `gates-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [data])
+
   return (
     <Card className="flex-1">
-      <CardHeader>
-        <CardTitle>Gates Analytics</CardTitle>
-        <CardDescription>Total inspection and defects per gate</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Gates Analytics</CardTitle>
+          <CardDescription>
+            Total inspection and defects per gate
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            disabled={!data || data.length === 0}
+            className="h-8 w-8 p-0"
+          >
+            <Download className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowLabels(!showLabels)}
+            className="h-8 w-8 p-0"
+          >
+            {showLabels ? (
+              <Eye className="size-4" />
+            ) : (
+              <EyeOff className="size-4" />
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -91,27 +136,30 @@ export function Total_OK_NOK_Chart() {
 
               {/* 3. OK Bar component with integrated data labels */}
               <Bar dataKey="OK" fill="var(--color-OK)" radius={4}>
-                <LabelList
-                  dataKey="OK"
-                  position="top"
-                  offset={10}
-                  className="fill-foreground"
-                  fontSize={12}
-                  // Hides '0' tags if you want to keep the rendering area clean
-                  formatter={(value) => (Number(value) > 0 ? value : "")}
-                />
+                {showLabels && (
+                  <LabelList
+                    dataKey="OK"
+                    position="top"
+                    offset={10}
+                    className="fill-foreground"
+                    fontSize={12}
+                    formatter={(value) => (Number(value) > 0 ? value : "")}
+                  />
+                )}
               </Bar>
 
               {/* 4. NOK Bar component with integrated data labels */}
               <Bar dataKey="NOK" fill="var(--color-NOK)" radius={4}>
-                <LabelList
-                  dataKey="NOK"
-                  position="top"
-                  offset={10}
-                  className="fill-foreground"
-                  fontSize={12}
-                  formatter={(value) => (Number(value) > 0 ? value : "")}
-                />
+                {showLabels && (
+                  <LabelList
+                    dataKey="NOK"
+                    position="top"
+                    offset={10}
+                    className="fill-foreground"
+                    fontSize={12}
+                    formatter={(value) => (Number(value) > 0 ? value : "")}
+                  />
+                )}
               </Bar>
             </BarChart>
           </ChartContainer>

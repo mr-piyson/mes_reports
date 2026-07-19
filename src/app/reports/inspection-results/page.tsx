@@ -14,7 +14,6 @@ import {
   BarChart3,
   ChevronDownIcon,
   ChevronRightIcon,
-  Download,
   FileSpreadsheet,
   Search,
   TableIcon,
@@ -131,16 +130,6 @@ export default function ReportPage() {
     { enabled: isRangeSelected && activeView === "analytics" }
   )
 
-  const { data: projectDataFull } = trpc.charts.get_totals_defects.useQuery(
-    {
-      from: appliedFrom,
-      to: appliedTo,
-      groupBy: "project",
-      gate: gateNum,
-    },
-    { enabled: isRangeSelected && activeView === "analytics" }
-  )
-
   type GateRow = {
     gate_name: string
     OK: number
@@ -155,17 +144,10 @@ export default function ReportPage() {
   }
   const okNokCasted = (okNokData ?? []) as GateRow[]
   const projectCasted = (projectData ?? []) as ProjectRow[]
-  const projectFullCasted = (projectDataFull ?? []) as ProjectRow[]
 
   const { data: defectTypeData } =
     trpc.charts.get_defect_counts_by_type.useQuery(
       { from: appliedFrom, to: appliedTo, limit: 6, gate: gateNum },
-      { enabled: isRangeSelected && activeView === "analytics" }
-    )
-
-  const { data: defectTypeDataFull } =
-    trpc.charts.get_defect_counts_by_type.useQuery(
-      { from: appliedFrom, to: appliedTo, gate: gateNum },
       { enabled: isRangeSelected && activeView === "analytics" }
     )
 
@@ -304,7 +286,7 @@ export default function ReportPage() {
   }, [gridApi])
 
   const hasAnalyticsData =
-    statsData && defectsPerDayData && okNokData && projectData && defectTypeData && projectDataFull && defectTypeDataFull
+    statsData && defectsPerDayData && okNokData && projectData && defectTypeData
 
   const exportAnalytics = useCallback(() => {
     if (!hasAnalyticsData) return
@@ -320,57 +302,6 @@ export default function ReportPage() {
       `inspection-analytics-${new Date().toISOString().split("T")[0]}.csv`
     )
   }, [statsData, defectsPerDayData, okNokCasted, projectCasted, defectTypeData])
-
-  const downloadDailyCsv = useCallback(() => {
-    if (!defectsPerDayData || defectsPerDayData.length === 0) return
-    const header = "Date,Panels Inspected,Count"
-    const rows = defectsPerDayData.map(
-      (r: { date: string | Date | null; count: number; panels: number }) =>
-        `${r.date ?? ""},${r.panels ?? 0},${r.count}`
-    )
-    downloadCsv(
-      [header, ...rows].join("\n"),
-      `daily-defects-${new Date().toISOString().split("T")[0]}.csv`
-    )
-  }, [defectsPerDayData])
-
-  const downloadGatesCsv = useCallback(() => {
-    if (!okNokCasted || okNokCasted.length === 0) return
-    const header = "Gate,OK,NOK,Total,Defect Rate"
-    const rows = okNokCasted.map(
-      (r: GateRow) =>
-        `${r.gate_name},${r.OK},${r.NOK},${r.total},${r.defect_rate}`
-    )
-    downloadCsv(
-      [header, ...rows].join("\n"),
-      `gates-analytics-${new Date().toISOString().split("T")[0]}.csv`
-    )
-  }, [okNokCasted])
-
-  const downloadProjectsCsv = useCallback(() => {
-    if (!projectFullCasted || projectFullCasted.length === 0) return
-    const header = "Project,Defect Count,Total Panels Inspected"
-    const rows = projectFullCasted.map(
-      (r: ProjectRow) =>
-        `${r.project},${r.defect_count},${r.total_panels_inspected}`
-    )
-    downloadCsv(
-      [header, ...rows].join("\n"),
-      `project-analytics-${new Date().toISOString().split("T")[0]}.csv`
-    )
-  }, [projectFullCasted])
-
-  const downloadDefectTypesCsv = useCallback(() => {
-    if (!defectTypeDataFull || defectTypeDataFull.length === 0) return
-    const header = "Defect Type,Defect Count"
-    const rows = (defectTypeDataFull as { defect_type: string; defect_count: number }[]).map(
-      (r) => `${r.defect_type},${r.defect_count}`
-    )
-    downloadCsv(
-      [header, ...rows].join("\n"),
-      `defect-type-analytics-${new Date().toISOString().split("T")[0]}.csv`
-    )
-  }, [defectTypeDataFull])
 
   if (isError) {
     return (
@@ -518,59 +449,11 @@ export default function ReportPage() {
           <Suspense>
             <div className="p-4 space-y-4 overflow-auto h-full">
               <SummaryCards />
-              <div className="relative group">
-                <ChartBarInteractive />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={downloadDailyCsv}
-                  disabled={!defectsPerDayData || defectsPerDayData.length === 0}
-                  className="absolute top-3 right-3 z-10 h-7 text-xs"
-                >
-                  <Download className="mr-1 size-3" />
-                  Export
-                </Button>
-              </div>
+              <ChartBarInteractive />
               <div className="grid grid-cols-1 xl:grid-cols-3 w-full gap-4">
-                <div className="relative group">
-                  <Total_OK_NOK_Chart />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadGatesCsv}
-                    disabled={!okNokCasted || okNokCasted.length === 0}
-                    className="absolute top-3 right-3 z-10 h-7 text-xs"
-                  >
-                    <Download className="mr-1 size-3" />
-                    Export
-                  </Button>
-                </div>
-                <div className="relative group">
-                  <Total_inspections_per_project_Chart />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadProjectsCsv}
-                    disabled={!projectFullCasted || projectFullCasted.length === 0}
-                    className="absolute top-3 right-3 z-10 h-7 text-xs"
-                  >
-                    <Download className="mr-1 size-3" />
-                    Export
-                  </Button>
-                </div>
-                <div className="relative group">
-                  <Total_Defects_Per_Type_Chart />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadDefectTypesCsv}
-                    disabled={!defectTypeDataFull || defectTypeDataFull.length === 0}
-                    className="absolute top-3 right-3 z-10 h-7 text-xs"
-                  >
-                    <Download className="mr-1 size-3" />
-                    Export
-                  </Button>
-                </div>
+                <Total_OK_NOK_Chart />
+                <Total_inspections_per_project_Chart />
+                <Total_Defects_Per_Type_Chart />
               </div>
             </div>
           </Suspense>

@@ -1,17 +1,26 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Download, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useQueryState } from "nuqs"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { useCallback, useState } from "react"
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
 import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { downloadCsv } from "@/lib/csv-export"
 import { trpc } from "@/lib/trpc/client"
 
 export const description = "Daily Defect Analytics"
@@ -38,6 +47,7 @@ export function ChartBarInteractive() {
   const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
   const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
   const [gate, setGate] = useQueryState("gate", gateParam)
+  const [showLabels, setShowLabels] = useState(true)
 
   const { data, isLoading } = trpc.charts.get_total_defects_per_day.useQuery({
     from: appliedFrom,
@@ -45,8 +55,52 @@ export function ChartBarInteractive() {
     gate: Number(gate),
   })
 
+  const handleExport = useCallback(() => {
+    if (!data || data.length === 0) return
+    const header = "Date,Panels Inspected,Defects"
+    const rows = data.map(
+      (r: { date: string | Date | null; count: number; panels: number }) =>
+        `${r.date ?? ""},${r.panels ?? 0},${r.count}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `daily-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [data])
+
   return (
-    <Card className="col-span-3 max-h-80 px-2 sm:p-6">
+    <Card className="col-span-3 max-h-96 px-2 sm:p-6">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Daily Analytics</CardTitle>
+          <CardDescription>
+            Defects and panels inspected per day
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            disabled={!data || data.length === 0}
+            className="h-8 w-8 p-0"
+          >
+            <Download className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowLabels(!showLabels)}
+            className="h-8 w-8 p-0"
+          >
+            {showLabels ? (
+              <Eye className="size-4" />
+            ) : (
+              <EyeOff className="size-4" />
+            )}
+          </Button>
+        </div>
+      </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex h-[300px] items-center justify-center gap-2 text-muted-foreground">
@@ -68,6 +122,7 @@ export function ChartBarInteractive() {
               margin={{
                 left: 12,
                 right: 12,
+                top: showLabels ? 20 : 12,
               }}
             >
               <CartesianGrid vertical={false} />
@@ -105,12 +160,32 @@ export function ChartBarInteractive() {
                 dataKey="count"
                 fill="var(--color-defects)"
                 radius={[4, 4, 0, 0]}
-              />
+              >
+                {showLabels && (
+                  <LabelList
+                    dataKey="count"
+                    position="top"
+                    offset={10}
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                )}
+              </Bar>
               <Bar
                 dataKey="panels"
                 fill="var(--color-panels)"
                 radius={[4, 4, 0, 0]}
-              />
+              >
+                {showLabels && (
+                  <LabelList
+                    dataKey="panels"
+                    position="top"
+                    offset={10}
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                )}
+              </Bar>
             </BarChart>
           </ChartContainer>
         )}

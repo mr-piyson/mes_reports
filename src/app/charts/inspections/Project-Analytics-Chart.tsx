@@ -1,9 +1,11 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Download, Eye, EyeOff, Loader2 } from "lucide-react"
+import { useCallback, useState } from "react"
 import { useQueryState } from "nuqs"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -21,6 +23,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { trpc } from "@/lib/trpc/client"
+
+import { downloadCsv } from "@/lib/csv-export"
 
 import { fromParam, gateParam, toParam } from "./params"
 
@@ -46,6 +50,7 @@ export function Total_inspections_per_project_Chart() {
   const [appliedFrom, setAppliedFrom] = useQueryState("from", fromParam)
   const [appliedTo, setAppliedTo] = useQueryState("to", toParam)
   const [gate, setGate] = useQueryState("gate", gateParam)
+  const [showLabels, setShowLabels] = useState(true)
 
   const { data, isLoading } = trpc.charts.get_totals_defects.useQuery({
     from: appliedFrom,
@@ -55,11 +60,55 @@ export function Total_inspections_per_project_Chart() {
     gate: Number(gate),
   })
 
+  const { data: fullData } = trpc.charts.get_totals_defects.useQuery({
+    from: appliedFrom,
+    to: appliedTo,
+    groupBy: "project",
+    gate: Number(gate),
+  })
+
+  const handleExport = useCallback(() => {
+    if (!fullData || fullData.length === 0) return
+    const header = "Project,Defect Count,Total Panels Inspected"
+    const rows = (fullData as ProjectData[]).map(
+      (r) => `${r.project},${r.defect_count},${r.total_panels_inspected}`
+    )
+    downloadCsv(
+      [header, ...rows].join("\n"),
+      `project-analytics-${new Date().toISOString().split("T")[0]}.csv`
+    )
+  }, [fullData])
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Project Analytics</CardTitle>
-        <CardDescription>Defects vs Unique Panels Inspected</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Project Analytics</CardTitle>
+          <CardDescription>Defects vs Unique Panels Inspected</CardDescription>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            disabled={!fullData || fullData.length === 0}
+            className="h-8 w-8 p-0"
+          >
+            <Download className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowLabels(!showLabels)}
+            className="h-8 w-8 p-0"
+          >
+            {showLabels ? (
+              <Eye className="size-4" />
+            ) : (
+              <EyeOff className="size-4" />
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -107,13 +156,15 @@ export function Total_inspections_per_project_Chart() {
                 fill="var(--color-total_panels_inspected)"
                 radius={[0, 4, 4, 0]}
               >
-                <LabelList
-                  dataKey="total_panels_inspected"
-                  position="right"
-                  offset={8}
-                  className="fill-foreground"
-                  fontSize={12}
-                />
+                {showLabels && (
+                  <LabelList
+                    dataKey="total_panels_inspected"
+                    position="right"
+                    offset={8}
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                )}
               </Bar>
 
               {/* Bar 2: Defect Count */}
@@ -122,13 +173,15 @@ export function Total_inspections_per_project_Chart() {
                 fill="var(--color-defect_count)"
                 radius={[0, 4, 4, 0]}
               >
-                <LabelList
-                  dataKey="defect_count"
-                  position="right"
-                  offset={8}
-                  className="fill-foreground"
-                  fontSize={12}
-                />
+                {showLabels && (
+                  <LabelList
+                    dataKey="defect_count"
+                    position="right"
+                    offset={8}
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                )}
               </Bar>
             </BarChart>
           </ChartContainer>
