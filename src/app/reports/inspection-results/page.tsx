@@ -21,12 +21,16 @@ import {
 import { parseAsString, useQueryState } from "nuqs"
 import { Suspense, useCallback, useMemo, useState } from "react"
 
-import { Total_OK_NOK_Chart } from "@/app/charts/inspections/Gate-Analytics-Chart"
-import { ChartBarInteractive } from "@/app/charts/inspections/Inspection-Analatics"
-import { Total_inspections_per_project_Chart } from "@/app/charts/inspections/Project-Analytics-Chart"
-import { SummaryCards } from "@/app/charts/inspections/SummaryCard"
-import { Total_Defects_Per_Type_Chart } from "@/app/charts/inspections/Total_Defects_Per_Type_Chart"
-import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import { Total_OK_NOK_Chart } from "@/components/charts/inspections/Gate-Analytics-Chart"
+import { ChartBarInteractive } from "@/components/charts/inspections/Inspection-Analatics"
+import { Total_inspections_per_project_Chart } from "@/components/charts/inspections/Project-Analytics-Chart"
+import { SummaryCards } from "@/components/charts/inspections/SummaryCard"
+import { Total_Defects_Per_Type_Chart } from "@/components/charts/inspections/Total_Defects_Per_Type_Chart"
+import {
+  fromParam,
+  gateParam,
+  toParam,
+} from "@/components/charts/inspections/params"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {

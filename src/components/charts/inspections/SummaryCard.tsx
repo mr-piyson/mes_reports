@@ -1,7 +1,11 @@
 import { Loader2 } from "lucide-react"
 import { useQueryState } from "nuqs"
 
-import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import {
+  fromParam,
+  gateParam,
+  toParam,
+} from "@/components/charts/inspections/params"
 import { Card, CardContent } from "@/components/ui/card"
 import { trpc } from "@/lib/trpc/client"
 

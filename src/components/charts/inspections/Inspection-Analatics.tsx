@@ -5,7 +5,11 @@ import { useQueryState } from "nuqs"
 import { useCallback, useState } from "react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
-import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import {
+  fromParam,
+  gateParam,
+  toParam,
+} from "@/components/charts/inspections/params"
 import { Button } from "@/components/ui/button"
 import {
   Card,

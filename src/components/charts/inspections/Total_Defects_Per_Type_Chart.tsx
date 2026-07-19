@@ -1,11 +1,15 @@
 "use client"
 
 import { Download, Eye, EyeOff, Loader2 } from "lucide-react"
-import { useCallback, useState } from "react"
 import { useQueryState } from "nuqs"
+import { useCallback, useState } from "react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
-import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import {
+  fromParam,
+  gateParam,
+  toParam,
+} from "@/components/charts/inspections/params"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -21,9 +25,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { trpc } from "@/lib/trpc/client"
-
 import { downloadCsv } from "@/lib/csv-export"
+import { trpc } from "@/lib/trpc/client"
 
 const chartConfig = {
   defect_count: {
@@ -57,9 +60,9 @@ export function Total_Defects_Per_Type_Chart() {
   const handleExport = useCallback(() => {
     if (!fullData || fullData.length === 0) return
     const header = "Defect Type,Defect Count"
-    const rows = (fullData as { defect_type: string; defect_count: number }[]).map(
-      (r) => `${r.defect_type},${r.defect_count}`
-    )
+    const rows = (
+      fullData as { defect_type: string; defect_count: number }[]
+    ).map((r) => `${r.defect_type},${r.defect_count}`)
     downloadCsv(
       [header, ...rows].join("\n"),
       `defect-type-analytics-${new Date().toISOString().split("T")[0]}.csv`

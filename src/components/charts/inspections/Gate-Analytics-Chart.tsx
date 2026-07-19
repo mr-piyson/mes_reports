@@ -5,7 +5,11 @@ import { useQueryState } from "nuqs"
 import { useCallback, useState } from "react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
 
-import { fromParam, gateParam, toParam } from "@/app/charts/inspections/params"
+import {
+  fromParam,
+  gateParam,
+  toParam,
+} from "@/components/charts/inspections/params"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -20,9 +24,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { trpc } from "@/lib/trpc/client"
-
 import { downloadCsv } from "@/lib/csv-export"
+import { trpc } from "@/lib/trpc/client"
 
 type GateData = {
   gate_name: string
@@ -62,8 +65,7 @@ export function Total_OK_NOK_Chart() {
     if (!data || data.length === 0) return
     const header = "Gate,OK,NOK,Total,Defect Rate"
     const rows = (data as GateData[]).map(
-      (r) =>
-        `${r.gate_name},${r.OK},${r.NOK},${r.total},${r.defect_rate}`
+      (r) => `${r.gate_name},${r.OK},${r.NOK},${r.total},${r.defect_rate}`
     )
     downloadCsv(
       [header, ...rows].join("\n"),
