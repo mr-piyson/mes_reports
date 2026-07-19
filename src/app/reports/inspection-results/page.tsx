@@ -520,44 +520,56 @@ export default function ReportPage() {
               <SummaryCards />
               <div className="relative group">
                 <ChartBarInteractive />
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={downloadDailyCsv}
                   disabled={!defectsPerDayData || defectsPerDayData.length === 0}
-                  className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                  className="absolute top-3 right-3 z-10 h-7 text-xs"
                 >
-                  <Download className="size-4" />
-                </button>
+                  <Download className="mr-1 size-3" />
+                  Export
+                </Button>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-3 w-full gap-4">
                 <div className="relative group">
                   <Total_OK_NOK_Chart />
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={downloadGatesCsv}
                     disabled={!okNokCasted || okNokCasted.length === 0}
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                    className="absolute top-3 right-3 z-10 h-7 text-xs"
                   >
-                    <Download className="size-4" />
-                  </button>
+                    <Download className="mr-1 size-3" />
+                    Export
+                  </Button>
                 </div>
                 <div className="relative group">
                   <Total_inspections_per_project_Chart />
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={downloadProjectsCsv}
                     disabled={!projectFullCasted || projectFullCasted.length === 0}
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                    className="absolute top-3 right-3 z-10 h-7 text-xs"
                   >
-                    <Download className="size-4" />
-                  </button>
+                    <Download className="mr-1 size-3" />
+                    Export
+                  </Button>
                 </div>
                 <div className="relative group">
                   <Total_Defects_Per_Type_Chart />
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={downloadDefectTypesCsv}
                     disabled={!defectTypeDataFull || defectTypeDataFull.length === 0}
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                    className="absolute top-3 right-3 z-10 h-7 text-xs"
                   >
-                    <Download className="size-4" />
-                  </button>
+                    <Download className="mr-1 size-3" />
+                    Export
+                  </Button>
                 </div>
               </div>
             </div>
