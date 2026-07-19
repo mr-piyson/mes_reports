@@ -523,7 +523,7 @@ export default function ReportPage() {
                 <button
                   onClick={downloadDailyCsv}
                   disabled={!defectsPerDayData || defectsPerDayData.length === 0}
-                  className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                  className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
                 >
                   <Download className="size-4" />
                 </button>
@@ -534,7 +534,7 @@ export default function ReportPage() {
                   <button
                     onClick={downloadGatesCsv}
                     disabled={!okNokCasted || okNokCasted.length === 0}
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
                   >
                     <Download className="size-4" />
                   </button>
@@ -544,7 +544,7 @@ export default function ReportPage() {
                   <button
                     onClick={downloadProjectsCsv}
                     disabled={!projectFullCasted || projectFullCasted.length === 0}
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
                   >
                     <Download className="size-4" />
                   </button>
@@ -554,7 +554,7 @@ export default function ReportPage() {
                   <button
                     onClick={downloadDefectTypesCsv}
                     disabled={!defectTypeDataFull || defectTypeDataFull.length === 0}
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm border transition-opacity hover:bg-accent cursor-pointer disabled:opacity-0 disabled:cursor-not-allowed"
                   >
                     <Download className="size-4" />
                   </button>
