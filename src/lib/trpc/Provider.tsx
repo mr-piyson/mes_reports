@@ -17,6 +17,7 @@ export default function TrpcProvider({ children }: { children: React.ReactNode }
         defaultOptions: {
           queries: {
             staleTime: 5 * 1000,
+            refetchOnWindowFocus: false,
           },
         },
       }),
